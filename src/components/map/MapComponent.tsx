@@ -1,175 +1,215 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { DroppableMapOverlay } from './DroppableMapOverlay'
+import { ShipMarker } from './ShipMarker'
+import type { ShipData } from '@/data/ships'
+import type { SimulationShip } from '@/types/simulation'
 
-// Set the access token
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
-if (!MAPBOX_TOKEN) {
-  console.error('Mapbox token is missing!')
+// Set Mapbox token
+if (!mapboxgl.accessToken) {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  if (!token) {
+    console.error('Mapbox token is missing! Make sure NEXT_PUBLIC_MAPBOX_TOKEN is set in .env.local')
+  } else {
+    console.log('Setting Mapbox token:', token.substring(0, 8) + '...')
+    mapboxgl.accessToken = token
+  }
 }
-mapboxgl.accessToken = MAPBOX_TOKEN
 
 interface MapComponentProps {
   center: [number, number]
   zoom: number
   onChange: (center: [number, number], zoom: number) => void
+  onShipDrop?: (ship: ShipData, position: { x: number, y: number }) => void
+  ships?: SimulationShip[]
 }
 
-export function MapComponent({ center, zoom, onChange }: MapComponentProps) {
+export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [] }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
-  const coordinatesDivRef = useRef<HTMLDivElement | null>(null)
+  const markers = useRef<{ [key: string]: mapboxgl.Marker }>({})
+  const shipCourses = useRef<{ [key: string]: number }>({})  // Store courses for each ship
+  const shipSpeeds = useRef<{ [key: string]: number }>({})   // Store speeds for each ship
+  const roots = useRef<{ [key: string]: any }>({})  // Store React roots
   const isUserInteraction = useRef(false)
+  const lastCenter = useRef(center)
+  const lastZoom = useRef(zoom)
 
-  const formatCoords = (lat: number, lon: number) => {
-    const latDir = lat >= 0 ? 'N' : 'S'
-    const lonDir = lon >= 0 ? 'E' : 'W'
-    return `${Math.abs(lat).toFixed(4)}°${latDir} ${Math.abs(lon).toFixed(4)}°${lonDir}`
-  }
+  // Memoize the change handler to prevent unnecessary updates
+  const handleMapChange = useCallback(() => {
+    if (!map.current || !isUserInteraction.current) return
+    
+    const newCenter = map.current.getCenter()
+    const newZoom = map.current.getZoom()
+    const centerChanged = 
+      Math.abs(lastCenter.current[0] - newCenter.lng) > 0.0001 ||
+      Math.abs(lastCenter.current[1] - newCenter.lat) > 0.0001
+    const zoomChanged = Math.abs(lastZoom.current - newZoom) > 0.01
 
-  const handleMapChange = () => {
-    if (!map.current || !coordinatesDivRef.current) return
-    
-    const mapCenter = map.current.getCenter()
-    const currentZoom = map.current.getZoom()
-    const newCoords: [number, number] = [
-      Number(mapCenter.lng.toFixed(4)),
-      Number(mapCenter.lat.toFixed(4))
-    ]
-    
-    coordinatesDivRef.current.innerHTML = formatCoords(newCoords[1], newCoords[0])
-    
-    if (isUserInteraction.current) {
-      const roundedZoom = Number(currentZoom.toFixed(2))
-      onChange(newCoords, roundedZoom)
+    if (centerChanged || zoomChanged) {
+      lastCenter.current = [newCenter.lng, newCenter.lat]
+      lastZoom.current = newZoom
+      onChange([newCenter.lng, newCenter.lat], newZoom)
     }
-  }
+  }, [onChange])
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return
+    if (!mapContainer.current) return
+    if (!mapboxgl.accessToken) {
+      console.error('Cannot initialize map: Mapbox token is not set')
+      return
+    }
 
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
+        style: 'mapbox://styles/mapbox/satellite-v9',
         center: center,
         zoom: zoom,
-        attributionControl: true,
-        scrollZoom: true,
-        dragPan: true,
-        dragRotate: false,
-        keyboard: true,
-        doubleClickZoom: true,
-        touchZoomRotate: true,
-        maxZoom: 20,
-        minZoom: 1
+        dragRotate: false
       })
 
-      const coordinatesDiv = document.createElement('div')
-      coordinatesDivRef.current = coordinatesDiv
-      coordinatesDiv.className = 'bg-black bg-opacity-50 text-white px-4 py-1 rounded-b shadow text-center'
-      coordinatesDiv.style.position = 'absolute'
-      coordinatesDiv.style.top = '0'
-      coordinatesDiv.style.left = '50%'
-      coordinatesDiv.style.transform = 'translateX(-50%)'
-      coordinatesDiv.style.zIndex = '1'
-      coordinatesDiv.style.minWidth = '200px'
-      coordinatesDiv.style.fontSize = '14px'
-      coordinatesDiv.style.fontFamily = 'monospace'
-      mapContainer.current.appendChild(coordinatesDiv)
-
-      map.current.on('load', () => {
-        if (!map.current) return
-
-        // Disable rotation controls after map is loaded
-        map.current.dragRotate.disable()
-        map.current.touchZoomRotate.disableRotation()
-
-        map.current.addControl(
-          new mapboxgl.NavigationControl({
-            showCompass: true,
-            showZoom: true,
-            visualizePitch: true
-          }),
-          'top-right'
-        )
-
-        map.current.addControl(
-          new mapboxgl.ScaleControl({
-            maxWidth: 200,
-            unit: 'nautical'
-          }),
-          'bottom-left'
-        )
-
-        handleMapChange()
+      map.current.on('movestart', () => {
+        isUserInteraction.current = true
       })
 
-      // Track user interactions
-      map.current.on('dragstart', () => { isUserInteraction.current = true })
-      map.current.on('zoomstart', () => { isUserInteraction.current = true })
-      map.current.on('movestart', () => { isUserInteraction.current = true })
-
-      // Debounce map change events
-      let moveTimeout: NodeJS.Timeout
-      
-      map.current.on('moveend', () => {
-        clearTimeout(moveTimeout)
-        moveTimeout = setTimeout(() => {
-          handleMapChange()
-          isUserInteraction.current = false
-        }, 100)
-      })
-
-      map.current.on('zoomend', () => {
-        clearTimeout(moveTimeout)
-        moveTimeout = setTimeout(() => {
-          handleMapChange()
-          isUserInteraction.current = false
-        }, 100)
-      })
+      map.current.on('moveend', handleMapChange)
+      map.current.on('zoomend', handleMapChange)
 
     } catch (error) {
       console.error('Error initializing map:', error)
     }
 
     return () => {
-      if (map.current) {
-        map.current.remove()
-        map.current = null
-      }
-      if (coordinatesDivRef.current) {
-        coordinatesDivRef.current.remove()
-        coordinatesDivRef.current = null
-      }
+      Object.values(markers.current).forEach(marker => marker.remove())
+      markers.current = {}
+      map.current?.remove()
     }
-  }, []) // Only run on mount
+  }, [])
 
-  // Handle prop changes
+  // Update map when center/zoom props change
   useEffect(() => {
-    if (!map.current) return
-    
-    isUserInteraction.current = false
-    const currentCenter = map.current.getCenter()
-    const currentZoom = map.current.getZoom()
-    
-    // Only update if there's a significant change
-    if (
-      Math.abs(currentCenter.lng - center[0]) >= 0.0001 ||
-      Math.abs(currentCenter.lat - center[1]) >= 0.0001 ||
-      Math.abs(currentZoom - zoom) >= 0.01
-    ) {
-      map.current.setCenter(center)
-      map.current.setZoom(zoom)
+    if (!map.current || isUserInteraction.current) {
+      isUserInteraction.current = false
+      return
     }
+
+    map.current.setCenter(center)
+    map.current.setZoom(zoom)
   }, [center, zoom])
 
+  // Update markers when ships change
+  useEffect(() => {
+    const currentMap = map.current
+    if (!currentMap) return
+
+    // Remove old markers and their courses/speeds
+    Object.entries(markers.current).forEach(([id, marker]) => {
+      if (!ships.find(ship => ship.id === id)) {
+        if (roots.current[id]) {
+          roots.current[id].unmount()
+          delete roots.current[id]
+        }
+        marker.remove()
+        delete markers.current[id]
+        delete shipCourses.current[id]
+        delete shipSpeeds.current[id]
+      }
+    })
+
+    // Update or add markers
+    ships.forEach(ship => {
+      // Generate random course and speed if not exists
+      if (!shipCourses.current[ship.id]) {
+        shipCourses.current[ship.id] = Math.floor(Math.random() * 360)
+        // Generate random speed between min and max speed for the ship
+        const minSpeed = ship.characteristics.minSpeed || 0
+        const maxSpeed = ship.characteristics.maxSpeed || 30
+        shipSpeeds.current[ship.id] = minSpeed + Math.random() * (maxSpeed - minSpeed)
+      }
+
+      if (markers.current[ship.id]) {
+        // Update existing marker
+        markers.current[ship.id].setLngLat([ship.position.lng, ship.position.lat])
+        if (roots.current[ship.id]) {
+          roots.current[ship.id].render(
+            <ShipMarker 
+              ship={ship} 
+              heading={0} 
+              affiliation="unknown"
+              course={shipCourses.current[ship.id]}
+              speed={shipSpeeds.current[ship.id]}
+            />
+          )
+        }
+      } else {
+        // Create new marker
+        const markerElement = document.createElement('div')
+        markerElement.className = 'relative'
+        
+        // Render the ShipMarker component into the marker element
+        const shipMarkerRoot = document.createElement('div')
+        markerElement.appendChild(shipMarkerRoot)
+        
+        // Create a React root and render the ShipMarker
+        const { createRoot } = require('react-dom/client')
+        const root = createRoot(shipMarkerRoot)
+        roots.current[ship.id] = root
+        root.render(
+          <ShipMarker 
+            ship={ship} 
+            heading={0} 
+            affiliation="unknown"
+            course={shipCourses.current[ship.id]}
+            speed={shipSpeeds.current[ship.id]}
+          />
+        )
+        
+        const marker = new mapboxgl.Marker({
+          element: markerElement,
+          anchor: 'center',
+          rotationAlignment: 'map'
+        })
+          .setLngLat([ship.position.lng, ship.position.lat])
+          .addTo(currentMap)
+        markers.current[ship.id] = marker
+      }
+    })
+
+    // Cleanup function
+    return () => {
+      Object.values(roots.current).forEach(root => {
+        try {
+          root.unmount()
+        } catch (e) {
+          console.warn('Error unmounting root:', e)
+        }
+      })
+      roots.current = {}
+    }
+  }, [ships])
+
+  if (!mapboxgl.accessToken) {
+    return (
+      <div className="flex items-center justify-center w-full h-full bg-gray-100 text-red-600">
+        Error: Mapbox token is missing. Check the console for details.
+      </div>
+    )
+  }
+
   return (
-    <div className="relative w-full h-full bg-gray-200">
+    <div className="relative w-full h-full">
       <div ref={mapContainer} className="absolute inset-0" />
+      {onShipDrop && map.current && (
+        <DroppableMapOverlay 
+          onShipDrop={onShipDrop} 
+          map={map.current} 
+        />
+      )}
     </div>
   )
 } 
