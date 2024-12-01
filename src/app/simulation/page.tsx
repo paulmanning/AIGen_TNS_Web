@@ -1,22 +1,23 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import type { RootState } from '@/store'
 import { setSimulation } from '@/store/simulationSlice'
-import type { SimulationData } from '@/types/simulation'
+import type { SimulationData, SimulationShip } from '@/types/simulation'
 import { MapComponent } from '@/components/map/MapComponent'
 import { ShipPicker } from '@/components/ship-picker/ShipPicker'
+import { CustomDragLayer } from '@/components/ship-picker/CustomDragLayer'
 import type { ShipData } from '@/data/ships'
 import { defaultShips } from '@/data/ships'
 import { ShipDetails } from '@/components/ship-details/ShipDetails'
 
 export default function SimulationPage() {
   const dispatch = useDispatch()
-  const simulation = useSelector((state: RootState) => state.simulation as SimulationData | null)
+  const simulation = useSelector((state: RootState) => state.simulation.data)
   const [isSetupMode, setIsSetupMode] = useState(true)
   const [selectedShip, setSelectedShip] = useState<ShipData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -113,29 +114,31 @@ export default function SimulationPage() {
     dispatch(setSimulation(updatedSimulation))
   }
 
-  const handleShipDrop = (ship: ShipData, position: { x: number, y: number }) => {
+  const handleShipDrop = useCallback((ship: ShipData, position: { x: number, y: number }) => {
+    console.log('Current ships:', simulation?.ships)
+    console.log('Dropping ship:', ship)
+    
     if (!simulation) return
+
+    const newShip: SimulationShip = {
+      ...ship,
+      position: {
+        lat: position.y,
+        lng: position.x
+      }
+    }
+
+    const updatedShips = [...(simulation.ships || []), newShip]
+    console.log('Updated ships:', updatedShips)
 
     const updatedSimulation: SimulationData = {
       ...simulation,
-      ships: [
-        ...(simulation.ships || []),
-        {
-          ...ship,
-          position: {
-            lat: position.y,
-            lng: position.x
-          }
-        }
-      ]
+      ships: updatedShips
     }
 
-    // Save to localStorage first
-    localStorage.setItem('currentSimulation', JSON.stringify(updatedSimulation))
-    
-    // Then update Redux state
+    console.log('Final simulation state:', updatedSimulation)
     dispatch(setSimulation(updatedSimulation))
-  }
+  }, [simulation, dispatch])
 
   // Remove the simulation state debug log
   useEffect(() => {
@@ -163,11 +166,7 @@ export default function SimulationPage() {
   }
 
   if (!simulation) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="text-xl text-red-600">Error: No simulation data found</div>
-      </div>
-    )
+    return null
   }
 
   return (
@@ -256,6 +255,7 @@ export default function SimulationPage() {
             <ShipDetails ship={selectedShip} />
           </div>
         </div>
+        <CustomDragLayer />
       </div>
     </DndProvider>
   )
