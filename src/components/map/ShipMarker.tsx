@@ -107,15 +107,8 @@ export function ShipMarker({
   const style = shipModifiers[ship.type] || shipModifiers[VesselType.SURFACE_WARSHIP]
 
   return (
-    <div
-      className="ship-marker"
-      style={{
-        transform: `rotate(${heading}deg)`,
-        width: '32px',
-        height: '32px',
-      }}
-    >
-      {/* Main SVG for symbol and arrow */}
+    <div className="ship-marker">
+      {/* Main SVG for symbol */}
       <svg
         width="32"
         height="32"
@@ -140,17 +133,31 @@ export function ShipMarker({
           stroke="white"
           strokeWidth="1.5"
         />
+      </svg>
 
+      {/* Separate SVG for course arrow */}
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          transform: `rotate(${course}deg)`,
+          transformOrigin: 'center center',
+          filter: 'drop-shadow(0px 0px 2px rgba(0,0,0,0.5))',
+          overflow: 'visible'
+        }}
+      >
         {/* Course arrow with speed line */}
-        <g transform={`rotate(${course - heading}, 16, 16)`}>
-          <path
-            d={getCourseArrow(speed)}
-            fill="white"
-            stroke="white"
-            strokeWidth="0.5"
-            style={{ pointerEvents: 'none' }}
-          />
-        </g>
+        <path
+          d={getCourseArrow(speed)}
+          fill="white"
+          stroke="white"
+          strokeWidth="0.5"
+          style={{ pointerEvents: 'none' }}
+        />
       </svg>
 
       {/* Ship name and course/speed label */}
