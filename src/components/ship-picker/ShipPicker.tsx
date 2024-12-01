@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
+import { useDrag, DragPreviewImage } from 'react-dnd'
 import { getShipIcon } from '@/utils/ship-icons'
 import type { ShipData } from '@/data/ships'
 import { VesselType } from '@/types/simulation'
@@ -10,12 +11,65 @@ interface ShipPickerProps {
   selectedShipId: string | undefined
 }
 
-export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
-  const [ships, setShips] = useState<ShipData[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [collapsedTypes, setCollapsedTypes] = useState<Set<VesselType>>(new Set())
+// Create a data URL for the preview image
+const dragPreviewUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+  <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="12" fill="rgba(59, 130, 246, 0.5)" stroke="#2563eb" stroke-width="2"/>
+    <path d="M16 8 L16 24 M16 8 L12 12 M16 8 L20 12" stroke="#2563eb" stroke-width="2" fill="none"/>
+  </svg>
+`)}`
 
-  useEffect(() => {
+function DraggableShip({ ship, isSelected, onSelect }: {
+  ship: ShipData
+  isSelected: boolean
+  onSelect: () => void
+}) {
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
+    type: 'SHIP',
+    item: ship,
+    collect: monitor => ({
+      isDragging: monitor.isDragging()
+    }),
+    previewOptions: {
+      captureDraggingState: true,
+    }
+  }), [ship])
+
+  return (
+    <>
+      <DragPreviewImage connect={preview} src={dragPreviewUrl} />
+      <div
+        ref={drag}
+        onClick={onSelect}
+        className={`
+          p-4 cursor-move select-none
+          hover:bg-gray-200 dark:hover:bg-gray-700
+          ${isDragging ? 'opacity-50' : ''}
+          ${isSelected ? 'bg-blue-100 dark:bg-blue-900' : ''}
+        `}
+      >
+        <div className="flex items-center space-x-3">
+          <span className="text-2xl" role="img" aria-label={ship.type}>
+            {getShipIcon(ship.type, ship.nationality, ship.id)}
+          </span>
+          <div>
+            <div className="font-medium">{ship.name}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {ship.hullNumber}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
+  const [ships, setShips] = React.useState<ShipData[]>([])
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [collapsedTypes, setCollapsedTypes] = React.useState<Set<VesselType>>(new Set())
+
+  React.useEffect(() => {
     const loadShips = async () => {
       const storedShips = localStorage.getItem('availableShips')
       if (storedShips) {
@@ -49,7 +103,7 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
   ]
 
   const getTypeLabel = (type: VesselType): string => {
-    return type.split('_').map(word => 
+    return type.split('_').map(word =>
       word.charAt(0) + word.slice(1).toLowerCase()
     ).join(' ')
   }
@@ -57,7 +111,7 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b dark:border-gray-700">
-        <h2 className="text-lg font-semibold mb-4">Available Ships</h2>
+        <h2 className="text-lg font-semibold mb-4 select-none">Available Ships</h2>
         <input
           type="text"
           placeholder="Search ships..."
@@ -72,7 +126,7 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
           if (shipsOfType.length === 0) return null
 
           return (
-            <div key={type}>
+            <div key={type} className="select-none">
               <button
                 onClick={() => setCollapsedTypes(prev => {
                   const newSet = new Set(prev)
@@ -85,7 +139,8 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
                 })}
                 className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 
                          font-medium flex items-center justify-between 
-                         hover:bg-gray-300 dark:hover:bg-gray-600"
+                         hover:bg-gray-300 dark:hover:bg-gray-600
+                         select-none"
               >
                 <span>{getTypeLabel(type)} ({shipsOfType.length})</span>
                 <span className="text-gray-600 dark:text-gray-400">
@@ -95,25 +150,12 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
               {!collapsedTypes.has(type) && (
                 <div>
                   {shipsOfType.map((ship) => (
-                    <div
+                    <DraggableShip
                       key={ship.id}
-                      onClick={() => onSelect(ship)}
-                      className={`p-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                        selectedShipId === ship.id ? 'bg-blue-100 dark:bg-blue-900' : ''
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl" role="img" aria-label={ship.type}>
-                          {getShipIcon(ship.type, ship.nationality, ship.id)}
-                        </span>
-                        <div>
-                          <div className="font-medium">{ship.name}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {ship.hullNumber}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      ship={ship}
+                      isSelected={ship.id === selectedShipId}
+                      onSelect={() => onSelect(ship)}
+                    />
                   ))}
                 </div>
               )}

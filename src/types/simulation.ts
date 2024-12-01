@@ -1,3 +1,5 @@
+import type { ShipData } from '@/data/ships'
+
 export enum VesselType {
   SURFACE_WARSHIP = 'SURFACE_WARSHIP',
   SUBMARINE = 'SUBMARINE',
@@ -6,26 +8,20 @@ export enum VesselType {
   BIOLOGIC = 'BIOLOGIC'
 }
 
+export interface SimulationShip extends ShipData {
+  position: {
+    lat: number
+    lng: number
+  }
+}
+
 export interface SimulationData {
   id: string
   name: string
-  description: string
+  startTime?: string
   location: {
     center: [number, number]
     zoom: number
   }
-  startTime: string
-  duration: number
-  vessels: {
-    id: string
-    position: Position
-  }[]
-}
-
-export interface Position {
-  coordinates: [number, number]
-  heading: number
-  speed: number
-  depth: number
-  timestamp: number
+  ships?: SimulationShip[]
 } 
