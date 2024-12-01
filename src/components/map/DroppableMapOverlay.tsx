@@ -16,20 +16,23 @@ export function DroppableMapOverlay({ onShipDrop, map }: DroppableMapOverlayProp
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'SHIP',
-    drop: (item: ShipData, monitor) => {
+    drop: (item: ShipData & { preview?: React.ReactNode }, monitor) => {
       const offset = monitor.getClientOffset()
       if (!offset || !map) return
 
-      const element = document.getElementById('map-overlay')
-      if (!element) return
+      // Get map container element
+      const mapContainer = map.getContainer()
+      const rect = mapContainer.getBoundingClientRect()
 
-      const rect = element.getBoundingClientRect()
+      // Calculate relative position within the map
       const x = offset.x - rect.left
       const y = offset.y - rect.top
 
       // Convert screen coordinates to map coordinates
       const point = map.unproject([x, y])
       
+      console.log(`Dropping ${item.name} at coordinates: ${point.lat.toFixed(4)}°N, ${point.lng.toFixed(4)}°E`)
+
       // Show drop message
       setDropMessage(`Dropped ${item.name} at ${point.lat.toFixed(4)}°N, ${point.lng.toFixed(4)}°E`)
       setMessagePosition({ x: offset.x, y: offset.y })
@@ -37,8 +40,9 @@ export function DroppableMapOverlay({ onShipDrop, map }: DroppableMapOverlayProp
       // Clear message after 3 seconds
       setTimeout(() => setDropMessage(null), 3000)
 
-      // Call the drop handler
-      onShipDrop(item, { x: point.lng, y: point.lat })
+      // Call the drop handler with the ship data (without preview)
+      const { preview, ...shipData } = item
+      onShipDrop(shipData, { x: point.lng, y: point.lat })
     },
     collect: monitor => ({
       isOver: monitor.isOver()
@@ -46,28 +50,25 @@ export function DroppableMapOverlay({ onShipDrop, map }: DroppableMapOverlayProp
   }), [map, onShipDrop])
 
   return (
-    <>
-      <div
-        id="map-overlay"
-        ref={drop}
-        className="absolute inset-0"
-        style={{ 
-          backgroundColor: isOver ? 'rgba(0, 0, 255, 0.1)' : 'transparent',
-          transition: 'background-color 0.2s ease-in-out'
-        }}
-      />
+    <div
+      ref={drop}
+      id="map-overlay"
+      className="absolute inset-0 z-10"
+      style={{ pointerEvents: 'all' }}
+    >
       {dropMessage && (
         <div
-          className="fixed z-50 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg pointer-events-none"
+          className="fixed bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm pointer-events-none"
           style={{
             left: messagePosition.x,
-            top: messagePosition.y - 40,
-            transform: 'translate(-50%, -50%)'
+            top: messagePosition.y,
+            transform: 'translate(-50%, -100%)',
+            marginTop: '-8px'
           }}
         >
           {dropMessage}
         </div>
       )}
-    </>
+    </div>
   )
 } 
