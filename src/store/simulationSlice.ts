@@ -1,13 +1,29 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { SimulationData } from '@/types/simulation'
 
-const initialState: SimulationData | null = null
+interface SimulationState {
+  data: SimulationData | null
+}
+
+const initialState: SimulationState = {
+  data: null
+}
 
 const simulationSlice = createSlice({
   name: 'simulation',
   initialState,
   reducers: {
-    setSimulation: (state, action) => action.payload
+    setSimulation: (state, action: PayloadAction<SimulationData | null>) => {
+      if (action.payload === null) {
+        state.data = null
+        return
+      }
+      
+      state.data = {
+        ...action.payload,
+        ships: [...(action.payload.ships || [])]
+      }
+    }
   }
 })
 
