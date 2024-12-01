@@ -2,6 +2,8 @@
 
 A sophisticated web-based naval tactical simulation system built with Next.js and TypeScript. This application provides real-time visualization and management of naval simulations with an emphasis on vessel movement and tactical scenarios.
 
+For detailed technical specifications and UI requirements, see [specification.md](specification.md).
+
 ## Features
 
 ### Core Functionality
@@ -10,12 +12,15 @@ A sophisticated web-based naval tactical simulation system built with Next.js an
   - Real-time map navigation with zoom and pan controls
   - Coordinate display system
   - Custom map styling for naval operations
+  - Drag and drop ship placement
+  - NATO APP-6/MIL-STD-2525 style markers
 
 - **Simulation Management**
   - Create and configure new simulations
   - Set simulation parameters (name, description, duration)
   - Define geographical area of operations
   - Real-time state persistence
+  - Collapsible control panels
 
 - **Vessel System**
   - Multiple vessel categories:
@@ -27,13 +32,15 @@ A sophisticated web-based naval tactical simulation system built with Next.js an
   - Detailed vessel characteristics
   - International vessel database
   - Custom vessel icons with nationality flags
+  - Random course generation
+  - Consistent marker sizes with separate arrow rotation
 
 ### Technical Features
 - Modern React architecture with Next.js 14
 - Type-safe development with TypeScript
 - Global state management with Redux Toolkit
 - Responsive design with Tailwind CSS
-- Comprehensive test coverage
+- React DnD for drag and drop operations
 - Local storage persistence
 
 ## Getting Started
@@ -97,28 +104,15 @@ src/
 ├── components/            # React components
 │   ├── dialogs/          # Modal dialogs
 │   ├── layout/           # Layout components
-│   ├── map/             # Map components
+│   ├── map/             # Map and marker components
 │   ├── ship-details/    # Vessel information
-│   └── ship-picker/     # Vessel selection
+│   ├── ship-picker/     # Vessel selection and drag/drop
+│   ├── simulation/      # Simulation controls
+│   └── ui/              # Common UI components
 ├── store/                # Redux store setup
 ├── types/                # TypeScript definitions
 ├── utils/                # Utility functions
-├── data/                # Static data
-└── __tests__/           # Test suites
-```
-
-## Testing
-
-The project uses Jest and React Testing Library for testing. Tests are organized into:
-
-- **UI Flow Tests**: End-to-end testing of user interactions
-- **Simulation Flow Tests**: Testing of simulation logic
-- **Component Tests**: Individual component testing
-
-Run tests with:
-```bash
-npm test                 # Run all tests
-npm run test:watch      # Run tests in watch mode
+└── data/                # Static data and ship definitions
 ```
 
 ## Contributing
@@ -137,4 +131,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with [Next.js](https://nextjs.org/)
 - Maps powered by [Mapbox GL JS](https://www.mapbox.com/mapbox-gl-js)
-- UI styled with [Tailwind CSS](https://tailwindcss.com/) 
+- UI styled with [Tailwind CSS](https://tailwindcss.com/)
+- Drag and Drop powered by [React DnD](https://react-dnd.github.io/react-dnd/)
