@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { MapComponent } from '@/components/map/MapComponent'
 import { useRouter } from 'next/navigation'
 import type { SimulationData } from '@/types/simulation'
@@ -14,6 +14,7 @@ interface NewSimulationDialogProps {
 
 export function NewSimulationDialog({ isOpen, onClose, onCreate }: NewSimulationDialogProps) {
   const router = useRouter()
+  const nameInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<SimulationData>({
     id: uuidv4(),
     name: '',
@@ -26,6 +27,13 @@ export function NewSimulationDialog({ isOpen, onClose, onCreate }: NewSimulation
     duration: 120,
     vessels: []
   })
+
+  // Auto-focus the name input when dialog opens
+  useEffect(() => {
+    if (isOpen && nameInputRef.current) {
+      nameInputRef.current.focus()
+    }
+  }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,6 +109,7 @@ export function NewSimulationDialog({ isOpen, onClose, onCreate }: NewSimulation
                 </label>
                 <input
                   id="simulation-name"
+                  ref={nameInputRef}
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
