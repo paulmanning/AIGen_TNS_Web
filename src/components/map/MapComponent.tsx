@@ -31,9 +31,8 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [] }:
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({})
-  const shipCourses = useRef<{ [key: string]: number }>({})  // Store courses for each ship
-  const shipSpeeds = useRef<{ [key: string]: number }>({})   // Store speeds for each ship
-  const roots = useRef<{ [key: string]: any }>({})  // Store React roots
+  const shipCourses = useRef<{ [key: string]: number }>({})
+  const shipSpeeds = useRef<{ [key: string]: number }>({})
   const isUserInteraction = useRef(false)
   const lastCenter = useRef(center)
   const lastZoom = useRef(zoom)
@@ -107,36 +106,48 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [] }:
     const currentMap = map.current
     if (!currentMap) return
 
-    // Remove old markers and their courses/speeds
-    Object.entries(markers.current).forEach(([id, marker]) => {
+    // Remove markers for ships that no longer exist
+    Object.keys(markers.current).forEach(id => {
       if (!ships.find(ship => ship.id === id)) {
-        if (roots.current[id]) {
-          roots.current[id].unmount()
-          delete roots.current[id]
-        }
-        marker.remove()
+        markers.current[id].remove()
         delete markers.current[id]
         delete shipCourses.current[id]
         delete shipSpeeds.current[id]
       }
     })
 
-    // Update or add markers
+    // Update or create markers for each ship
     ships.forEach(ship => {
+      console.log('Processing ship:', ship.id, ship.position)
+      
       // Generate random course and speed if not exists
       if (!shipCourses.current[ship.id]) {
         shipCourses.current[ship.id] = Math.floor(Math.random() * 360)
-        // Generate random speed between min and max speed for the ship
-        const minSpeed = ship.characteristics.minSpeed || 0
-        const maxSpeed = ship.characteristics.maxSpeed || 30
+        const minSpeed = ship.characteristics?.minSpeed || 0
+        const maxSpeed = ship.characteristics?.maxSpeed || 30
         shipSpeeds.current[ship.id] = minSpeed + Math.random() * (maxSpeed - minSpeed)
       }
 
-      if (markers.current[ship.id]) {
-        // Update existing marker
-        markers.current[ship.id].setLngLat([ship.position.lng, ship.position.lat])
-        if (roots.current[ship.id]) {
-          roots.current[ship.id].render(
+      try {
+        let marker = markers.current[ship.id]
+        
+        if (!marker) {
+          // Create new marker if it doesn't exist
+          console.log('Creating new marker for ship:', ship.id)
+          const markerElement = document.createElement('div')
+          markerElement.className = 'ship-marker-container'
+          
+          marker = new mapboxgl.Marker({
+            element: markerElement,
+            anchor: 'center',
+            rotationAlignment: 'map'
+          })
+          markers.current[ship.id] = marker
+
+          // Create React root for new marker
+          const { createRoot } = require('react-dom/client')
+          const root = createRoot(markerElement)
+          root.render(
             <ShipMarker 
               ship={ship} 
               heading={0} 
@@ -146,52 +157,41 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [] }:
             />
           )
         }
-      } else {
-        // Create new marker
-        const markerElement = document.createElement('div')
-        markerElement.className = 'relative'
+
+        // Update marker position
+        marker.setLngLat([ship.position.lng, ship.position.lat])
+        marker.addTo(currentMap)
         
-        // Render the ShipMarker component into the marker element
-        const shipMarkerRoot = document.createElement('div')
-        markerElement.appendChild(shipMarkerRoot)
-        
-        // Create a React root and render the ShipMarker
-        const { createRoot } = require('react-dom/client')
-        const root = createRoot(shipMarkerRoot)
-        roots.current[ship.id] = root
-        root.render(
-          <ShipMarker 
-            ship={ship} 
-            heading={0} 
-            affiliation="unknown"
-            course={shipCourses.current[ship.id]}
-            speed={shipSpeeds.current[ship.id]}
-          />
-        )
-        
-        const marker = new mapboxgl.Marker({
-          element: markerElement,
-          anchor: 'center',
-          rotationAlignment: 'map'
-        })
-          .setLngLat([ship.position.lng, ship.position.lat])
-          .addTo(currentMap)
-        markers.current[ship.id] = marker
+      } catch (error) {
+        console.error('Error handling marker for ship:', ship.id, error)
       }
     })
 
-    // Cleanup function
     return () => {
-      Object.values(roots.current).forEach(root => {
-        try {
-          root.unmount()
-        } catch (e) {
-          console.warn('Error unmounting root:', e)
-        }
-      })
-      roots.current = {}
+      // Clean up markers on unmount
+      Object.values(markers.current).forEach(marker => marker.remove())
+      markers.current = {}
     }
   }, [ships])
+
+  // Add CSS for ship markers
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      .ship-marker-container {
+        width: 32px;
+        height: 32px;
+      }
+      .ship-marker {
+        width: 100%;
+        height: 100%;
+      }
+    `
+    document.head.appendChild(style)
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
 
   if (!mapboxgl.accessToken) {
     return (
