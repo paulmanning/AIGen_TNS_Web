@@ -1,23 +1,26 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
-import { useDrag, DragPreviewImage } from 'react-dnd'
+import { useDrag } from 'react-dnd'
 import { getShipIcon } from '@/utils/ship-icons'
 import type { ShipData } from '@/data/ships'
 import { VesselType } from '@/types/simulation'
+import { getEmptyImage } from 'react-dnd-html5-backend'
 
 interface ShipPickerProps {
   onSelect: (ship: ShipData) => void
   selectedShipId: string | undefined
 }
 
-// Create a data URL for the preview image
-const dragPreviewUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-  <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="16" cy="16" r="12" fill="rgba(59, 130, 246, 0.5)" stroke="#2563eb" stroke-width="2"/>
-    <path d="M16 8 L16 24 M16 8 L12 12 M16 8 L20 12" stroke="#2563eb" stroke-width="2" fill="none"/>
-  </svg>
-`)}`
+// Custom drag layer component
+const DragPreview = () => (
+  <div style={{ width: 32, height: 32 }}>
+    <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="8" fill="rgba(59, 130, 246, 0.5)" stroke="#2563eb" strokeWidth="1.5"/>
+      <path d="M 16 16 L 16 4 M 16 4 L 12 8 M 16 4 L 20 8" stroke="#2563eb" strokeWidth="1.5" fill="none"/>
+    </svg>
+  </div>
+)
 
 function DraggableShip({ ship, isSelected, onSelect }: {
   ship: ShipData
@@ -26,41 +29,46 @@ function DraggableShip({ ship, isSelected, onSelect }: {
 }) {
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'SHIP',
-    item: ship,
+    item: () => {
+      console.log(`Starting drag for ${ship.name} (${ship.id})`)
+      return {
+        ...ship,
+        preview: <DragPreview />
+      }
+    },
     collect: monitor => ({
       isDragging: monitor.isDragging()
-    }),
-    previewOptions: {
-      captureDraggingState: true,
-    }
+    })
   }), [ship])
 
+  // Use empty image as default preview
+  useEffect(() => {
+    preview(getEmptyImage(), { captureDraggingState: true })
+  }, [preview])
+
   return (
-    <>
-      <DragPreviewImage connect={preview} src={dragPreviewUrl} />
-      <div
-        ref={drag}
-        onClick={onSelect}
-        className={`
-          p-4 cursor-move select-none
-          hover:bg-gray-200 dark:hover:bg-gray-700
-          ${isDragging ? 'opacity-50' : ''}
-          ${isSelected ? 'bg-blue-100 dark:bg-blue-900' : ''}
-        `}
-      >
-        <div className="flex items-center space-x-3">
-          <span className="text-2xl" role="img" aria-label={ship.type}>
-            {getShipIcon(ship.type, ship.nationality, ship.id)}
-          </span>
-          <div>
-            <div className="font-medium">{ship.name}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {ship.hullNumber}
-            </div>
+    <div
+      ref={drag}
+      onClick={onSelect}
+      className={`
+        p-4 cursor-move select-none
+        hover:bg-gray-200 dark:hover:bg-gray-700
+        ${isDragging ? 'opacity-50' : ''}
+        ${isSelected ? 'bg-blue-100 dark:bg-blue-900' : ''}
+      `}
+    >
+      <div className="flex items-center space-x-3">
+        <span className="text-2xl" role="img" aria-label={ship.type}>
+          {getShipIcon(ship.type, ship.nationality, ship.id)}
+        </span>
+        <div>
+          <div className="font-medium">{ship.name}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {ship.hullNumber}
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -73,16 +81,34 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
     const loadShips = async () => {
       const storedShips = localStorage.getItem('availableShips')
       if (storedShips) {
-        setShips(JSON.parse(storedShips))
+        try {
+          const parsedShips = JSON.parse(storedShips)
+          if (Array.isArray(parsedShips) && parsedShips.every(ship => ship && typeof ship.name === 'string')) {
+            setShips(parsedShips)
+            // Select the first ship by default if none is selected
+            if (!selectedShipId && parsedShips.length > 0) {
+              onSelect(parsedShips[0])
+            }
+          } else {
+            console.error('Invalid ship data format')
+            setShips([])
+          }
+        } catch (error) {
+          console.error('Error parsing ships:', error)
+          setShips([])
+        }
       }
     }
     loadShips()
-  }, [])
+  }, [onSelect, selectedShipId])
 
-  const filteredShips = ships.filter(ship =>
-    ship.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (ship.hullNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  )
+  const filteredShips = ships.filter(ship => {
+    if (!ship || typeof ship.name !== 'string') return false
+    return (
+      ship.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (ship.hullNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    )
+  })
 
   // Group ships by type
   const groupedShips = filteredShips.reduce((groups, ship) => {
