@@ -1,0 +1,46 @@
+{
+  "name": "naval-tactical-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "dev:test": "concurrently -n \"next,test\" -c \"blue,green\" \"next dev\" \"jest --watch --watchAll\"",
+    "dev:full": "concurrently -n \"next,test\" -c \"blue,green\" \"next dev\" \"jest --watch --watchAll\""
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.4.0",
+    "@types/node": "^20.10.1",
+    "@types/react": "^18.2.39",
+    "@types/react-dom": "^18.2.17",
+    "mapbox-gl": "^2.15.0",
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^9.1.2",
+    "typescript": "^5.3.2",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.9",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/mapbox-gl": "^2.7.21",
+    "@types/testing-library__react": "^10.2.0",
+    "@types/testing-library__user-event": "^4.2.0",
+    "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "jest-watch-typeahead": "^2.2.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15"
+  }
+}
