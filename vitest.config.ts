@@ -13,7 +13,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ['./src/test/setup.ts'],
     reporters: ['default'],
     silent: true,
     onConsoleLog: (log) => {
@@ -29,31 +29,20 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
-        'node_modules/',
-        'src/test-setup.ts',
-        '.next/',
+        'node_modules/**',
+        'dist/**',
         '**/*.d.ts',
-        '**/*.config.{js,ts}',
-        '**/types/**',
+        '**/*.test.{ts,tsx}',
+        '**/test/**',
+        '.next/**',
         'coverage/**',
-        '**/*.test.{js,jsx,ts,tsx}',
-        '**/__tests__/**',
-        '**/test-utils.tsx'
       ],
+      include: ['src/**/*.{ts,tsx}'],
       all: true,
-      clean: true,
-      skipFull: false,
-      include: ['src/**/*.{js,jsx,ts,tsx}'],
-      reportsDirectory: './coverage'
+      lines: 80,
+      functions: 80,
+      branches: 80,
+      statements: 80
     },
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true
-      }
-    },
-    testTimeout: 20000,
-    hookTimeout: 20000,
-    teardownTimeout: 20000
   },
 }) 
