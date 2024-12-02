@@ -2,6 +2,7 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
+import type { RootState } from '@/store';
 
 // Extend expect matchers
 expect.extend({});
@@ -13,10 +14,20 @@ afterEach(() => {
 });
 
 // Create mock store
-const mockState = {
+export const mockState: RootState = {
   simulation: {
     simulations: [],
-    currentSimulation: null,
+    currentSimulation: {
+      id: 'test-sim',
+      name: 'Test Simulation',
+      description: 'Test simulation description',
+      location: { lat: 0, lng: 0, zoom: 5 },
+      ships: [],
+      isSetupMode: true,
+      isPaused: true,
+      time: 0,
+      speed: 1,
+    },
     isSetupMode: true,
     isPaused: true,
     time: 0,
@@ -25,12 +36,21 @@ const mockState = {
 };
 
 // Mock Redux hooks
-vi.mock('react-redux', () => {
+const actualRedux = vi.importActual('react-redux');
+vi.mock('react-redux', async () => {
   const dispatch = vi.fn();
   const useDispatch = () => dispatch;
-  const useSelector = vi.fn((selector) => selector(mockState));
+  const useSelector = vi.fn((selector) => {
+    try {
+      return selector(mockState);
+    } catch (e) {
+      console.warn('Selector error:', e);
+      return undefined;
+    }
+  });
   
   return {
+    ...(await actualRedux),
     useDispatch,
     useSelector,
     Provider: ({ children }: { children: React.ReactNode }) => children,
@@ -105,7 +125,13 @@ const localStorageMock = {
       return JSON.stringify([]);
     }
     if (key === 'simulations') {
-      return JSON.stringify([]);
+      return JSON.stringify([{
+        id: 'test-sim',
+        name: 'Test Simulation',
+        description: 'Test simulation description',
+        location: { lat: 0, lng: 0, zoom: 5 },
+        ships: [],
+      }]);
     }
     return null;
   }),
