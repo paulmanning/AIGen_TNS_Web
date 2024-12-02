@@ -16,9 +16,11 @@ import type { ShipData } from '@/data/ships'
 import { defaultShips } from '@/data/ships'
 import { ShipDetails } from '@/components/ship-details/ShipDetails'
 import { getShipPositionAtTime, resetInitialPositions } from '@/utils/ship-position'
+import { useAppDispatch } from '@/redux/hooks'
+import { addShip } from '@/redux/simulationSlice'
 
 export default function SimulationPage() {
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const simulation = useSelector((state: RootState) => state.simulation.data)
   const [isSetupMode, setIsSetupMode] = useState(true)
   const [selectedShip, setSelectedShip] = useState<ShipData | SimulationShip | null>(null)
@@ -145,60 +147,20 @@ export default function SimulationPage() {
   }
 
   const handleShipDrop = useCallback((ship: ShipData, position: { x: number, y: number }) => {
-    if (!simulation) return
-
-    // Generate random course and speed based on ship characteristics
-    const randomCourse = Math.floor(Math.random() * 360)  // 0-359 degrees
-    const minSpeed = ship.characteristics?.minSpeed || 0
-    const maxSpeed = ship.characteristics?.maxSpeed || 30
-    const randomSpeed = Number((minSpeed + Math.random() * (maxSpeed - minSpeed)).toFixed(1))
-
-    console.log('Generating random values for ship:', {
-      name: ship.name,
-      course: randomCourse,
-      speed: randomSpeed,
-      position: position
-    })
-
-    const newShip: SimulationShip = {
+    console.log('SimulationPage: handleShipDrop called with:', { ship, position })
+    dispatch(addShip({
       ...ship,
+      id: crypto.randomUUID(), // Ensure unique ID
       position: {
         lat: position.y,
         lng: position.x
       },
-      course: randomCourse,
-      speed: randomSpeed,
-      depth: 0  // Surface by default
-    }
-
-    // Check if ship already exists
-    const updatedShips = simulation.ships ? [...simulation.ships] : []
-    const existingShipIndex = updatedShips.findIndex(s => s.id === ship.id)
-    
-    if (existingShipIndex !== -1) {
-      // Update existing ship
-      updatedShips[existingShipIndex] = newShip
-    } else {
-      // Add new ship
-      updatedShips.push(newShip)
-    }
-
-    const updatedSimulation: SimulationData = {
-      ...simulation,
-      ships: updatedShips
-    }
-
-    // Verify the values before dispatch
-    console.log('New ship state:', {
-      id: newShip.id,
-      name: newShip.name,
-      course: newShip.course,
-      speed: newShip.speed,
-      position: newShip.position
-    })
-
-    dispatch(setSimulation(updatedSimulation))
-  }, [simulation, dispatch])
+      course: 0,
+      speed: 0,
+      depth: 0,
+      waypoints: []
+    }))
+  }, [dispatch])
 
   // Remove the simulation state debug log
   useEffect(() => {

@@ -9,13 +9,19 @@ export enum VesselType {
 }
 
 export interface SimulationShip extends ShipData {
+  id: string
   position: {
     lat: number
     lng: number
   }
-  course: number  // in degrees, 0 = North, 90 = East, etc.
-  speed: number   // in knots
-  depth: number   // in meters, 0 = surface
+  course: number
+  speed: number
+  depth?: number
+  waypoints: Array<{
+    lat: number
+    lng: number
+    speed?: number
+  }>
 }
 
 export interface SimulationData {
