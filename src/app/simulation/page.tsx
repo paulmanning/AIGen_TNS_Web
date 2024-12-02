@@ -11,6 +11,7 @@ import type { SimulationData, SimulationShip } from '@/types/simulation'
 import { MapComponent } from '@/components/map/MapComponent'
 import { ShipPicker } from '@/components/ship-picker/ShipPicker'
 import { CustomDragLayer } from '@/components/ship-picker/CustomDragLayer'
+import { SimulationController } from '@/components/simulation/SimulationController'
 import type { ShipData } from '@/data/ships'
 import { defaultShips } from '@/data/ships'
 import { ShipDetails } from '@/components/ship-details/ShipDetails'
@@ -21,6 +22,8 @@ export default function SimulationPage() {
   const [isSetupMode, setIsSetupMode] = useState(true)
   const [selectedShip, setSelectedShip] = useState<ShipData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
   const lastLocation = React.useRef<SimulationData['location'] | null>(null)
   const router = useRouter()
 
@@ -128,7 +131,18 @@ export default function SimulationPage() {
       }
     }
 
-    const updatedShips = [...(simulation.ships || []), newShip]
+    // Check if ship already exists
+    const updatedShips = simulation.ships ? [...simulation.ships] : []
+    const existingShipIndex = updatedShips.findIndex(s => s.id === ship.id)
+    
+    if (existingShipIndex !== -1) {
+      // Update existing ship
+      updatedShips[existingShipIndex] = newShip
+    } else {
+      // Add new ship
+      updatedShips.push(newShip)
+    }
+
     console.log('Updated ships:', updatedShips)
 
     const updatedSimulation: SimulationData = {
@@ -155,6 +169,14 @@ export default function SimulationPage() {
   const handleReset = () => {
     localStorage.clear() // Clear any stored simulation data
     router.push('/')    // Navigate to root/welcome page
+  }
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleTimeChange = (newTime: number) => {
+    setCurrentTime(newTime)
   }
 
   if (isLoading) {
@@ -234,19 +256,17 @@ export default function SimulationPage() {
               />
             </div>
 
-            {/* Timeline Control */}
-            <div className="flex-none h-48 bg-gray-100 border-t dark:bg-gray-800 dark:border-gray-700 p-4">
-              <div className="flex items-center justify-center space-x-4">
-                <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                  <span className="text-xl">⏪</span>
-                </button>
-                <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                  <span className="text-xl">▶️</span>
-                </button>
-                <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                  <span className="text-xl">⏩</span>
-                </button>
-              </div>
+            {/* Simulation Controller */}
+            <div className="flex-none h-48 bg-gray-100 border-t dark:bg-gray-800 dark:border-gray-700">
+              <SimulationController
+                ships={simulation.ships || []}
+                currentTime={currentTime}
+                isPlaying={isPlaying}
+                onPlayPause={handlePlayPause}
+                onTimeChange={handleTimeChange}
+                onShipSelect={handleShipSelect}
+                selectedShipId={selectedShip?.id}
+              />
             </div>
           </div>
 
