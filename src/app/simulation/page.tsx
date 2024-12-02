@@ -121,20 +121,17 @@ export default function SimulationPage() {
 
   const handleMapChange = (center: [number, number], zoom: number) => {
     if (!simulation) return
-    
-    // Check if the location has actually changed
-    if (
-      Math.abs(simulation.location.center[0] - center[0]) < 0.0001 &&
-      Math.abs(simulation.location.center[1] - center[1]) < 0.0001 &&
-      Math.abs(simulation.location.zoom - zoom) < 0.01
-    ) {
-      return
-    }
-    
+
+    // Deep copy the current simulation state
     const updatedSimulation: SimulationData = {
       ...simulation,
-      ships: [...(simulation.ships || [])],
-      location: { 
+      ships: simulation.ships?.map(ship => ({
+        ...ship,
+        position: { ...ship.position },
+        characteristics: { ...ship.characteristics },
+        acousticSignatures: [...(ship.acousticSignatures || [])]
+      })),
+      location: {
         center: [
           Number(center[0].toFixed(4)),
           Number(center[1].toFixed(4))
@@ -142,11 +139,8 @@ export default function SimulationPage() {
         zoom: Number(zoom.toFixed(2))
       }
     }
-    
-    // Save to localStorage first
-    localStorage.setItem('currentSimulation', JSON.stringify(updatedSimulation))
-    
-    // Then update Redux state
+
+    // Update Redux state
     dispatch(setSimulation(updatedSimulation))
   }
 
@@ -230,17 +224,20 @@ export default function SimulationPage() {
   const handleTimeChange = (newTime: number) => {
     setCurrentTime(newTime)
     
-    // Update ship positions based on elapsed time
-    if (simulation?.ships) {
-      const updatedShips = simulation.ships.map(ship => {
-        const newPosition = getShipPositionAtTime(ship, newTime)
-        return {
-          ...ship,
-          position: newPosition
-        }
-      })
-      handleShipUpdate(updatedShips)
+    if (!simulation?.ships) return
+
+    // Update ship positions while preserving other state
+    const updatedSimulation: SimulationData = {
+      ...simulation,
+      ships: simulation.ships.map(ship => ({
+        ...ship,
+        position: getShipPositionAtTime(ship, newTime),
+        characteristics: { ...ship.characteristics },
+        acousticSignatures: [...(ship.acousticSignatures || [])]
+      }))
     }
+
+    dispatch(setSimulation(updatedSimulation))
   }
 
   const handleShipUpdate = useCallback((updatedShips: SimulationShip[]) => {

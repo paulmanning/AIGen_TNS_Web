@@ -40,50 +40,9 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({})
-  const shipTrails = useRef<{ [key: string]: string }>({})
   const markerElements = useRef<{ [key: string]: HTMLDivElement }>({})
+  const shipTrails = useRef<{ [key: string]: string }>({})
   const isUserInteraction = useRef(false)
-  const lastCenter = useRef(center)
-  const lastZoom = useRef(zoom)
-  const resizeObserver = useRef<ResizeObserver | null>(null)
-
-  // Debug log for selection changes
-  useEffect(() => {
-    console.log('Selection changed:', selectedShipId)
-  }, [selectedShipId])
-
-  // Memoize the change handler to prevent unnecessary updates
-  const handleMapChange = useCallback(() => {
-    if (!map.current || !isUserInteraction.current) return
-    
-    const newCenter = map.current.getCenter()
-    const newZoom = map.current.getZoom()
-    const centerChanged = 
-      Math.abs(lastCenter.current[0] - newCenter.lng) > 0.0001 ||
-      Math.abs(lastCenter.current[1] - newCenter.lat) > 0.0001
-    const zoomChanged = Math.abs(lastZoom.current - newZoom) > 0.01
-
-    if (centerChanged || zoomChanged) {
-      lastCenter.current = [newCenter.lng, newCenter.lat]
-      lastZoom.current = newZoom
-      onChange([newCenter.lng, newCenter.lat], newZoom)
-    }
-  }, [onChange])
-
-  // Handle map resize
-  const handleResize = useCallback(() => {
-    if (map.current) {
-      map.current.resize()
-      
-      // Force marker updates after resize
-      Object.entries(markers.current).forEach(([id, marker]) => {
-        const ship = ships.find(s => s.id === id)
-        if (ship) {
-          marker.setLngLat([ship.position.lng, ship.position.lat])
-        }
-      })
-    }
-  }, [ships])
 
   // Initialize map
   useEffect(() => {
@@ -102,77 +61,80 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
         dragRotate: false
       })
 
-      map.current.on('movestart', () => {
+      // Handle map interactions
+      const handleMapStart = () => {
         isUserInteraction.current = true
-      })
+      }
 
-      map.current.on('moveend', handleMapChange)
-      map.current.on('zoomend', handleMapChange)
+      const handleMapEnd = () => {
+        if (!map.current || !isUserInteraction.current) return
+        
+        const newCenter = map.current.getCenter()
+        const newZoom = map.current.getZoom()
+        
+        onChange([newCenter.lng, newCenter.lat], newZoom)
+        isUserInteraction.current = false
+      }
+
+      map.current.on('dragstart', handleMapStart)
+      map.current.on('zoomstart', handleMapStart)
+      map.current.on('dragend', handleMapEnd)
+      map.current.on('zoomend', handleMapEnd)
 
       // Set up resize observer
-      resizeObserver.current = new ResizeObserver(handleResize)
-      resizeObserver.current.observe(mapContainer.current)
+      const resizeObserver = new ResizeObserver(() => {
+        if (map.current) {
+          map.current.resize()
+        }
+      })
+      resizeObserver.observe(mapContainer.current)
 
+      return () => {
+        if (map.current) {
+          map.current.off('dragstart', handleMapStart)
+          map.current.off('zoomstart', handleMapStart)
+          map.current.off('dragend', handleMapEnd)
+          map.current.off('zoomend', handleMapEnd)
+          map.current.remove()
+        }
+        resizeObserver.disconnect()
+        Object.values(markers.current).forEach(marker => marker.remove())
+        markers.current = {}
+      }
     } catch (error) {
       console.error('Error initializing map:', error)
-    }
-
-    return () => {
-      resizeObserver.current?.disconnect()
-      Object.values(markers.current).forEach(marker => marker.remove())
-      markers.current = {}
-      map.current?.remove()
     }
   }, [])
 
   // Update map when center/zoom props change
   useEffect(() => {
-    if (!map.current || isUserInteraction.current) {
-      isUserInteraction.current = false
-      return
-    }
+    if (!map.current || isUserInteraction.current) return
 
-    const currentMap = map.current
-    currentMap.setCenter(center)
-    currentMap.setZoom(zoom)
-    
-    // Ensure markers are in correct positions after map update
-    requestAnimationFrame(() => {
-      Object.entries(markers.current).forEach(([id, marker]) => {
-        const ship = ships.find(s => s.id === id)
-        if (ship) {
-          marker.setLngLat([ship.position.lng, ship.position.lat])
-        }
-      })
-    })
-  }, [center, zoom, ships])
+    map.current.setCenter(center)
+    map.current.setZoom(zoom)
+  }, [center, zoom])
 
-  // Update ship markers
+  // Update markers and trails
   useEffect(() => {
     const mapInstance = map.current
     if (!mapInstance) return
 
-    // Update all markers to reflect current selection state
+    // Update markers
     ships.forEach(ship => {
-      // Get ship position based on mode
       const position = isSetupMode 
         ? ship.position 
         : getShipPositionAtTime(ship, currentTime)
 
-      // Create or update marker element
       let markerElement = markerElements.current[ship.id]
       if (!markerElement) {
         markerElement = document.createElement('div')
         markerElements.current[ship.id] = markerElement
       }
-      
-      // Create or update marker
+
       let marker = markers.current[ship.id]
       const isThisShipSelected = ship.id === selectedShipId
-      console.log('Updating marker:', ship.id, 'selected:', isThisShipSelected)
 
       if (!marker) {
-        // Create React root if it doesn't exist
         let root = markerRoots.get(markerElement)
         if (!root) {
           root = createRoot(markerElement)
@@ -180,26 +142,27 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
         }
         root.render(<ShipMarker ship={ship} isSelected={isThisShipSelected} />)
 
-        // Create new marker
         marker = new mapboxgl.Marker({
           element: markerElement,
           anchor: 'center',
           rotationAlignment: 'map'
         })
         markers.current[ship.id] = marker
-        marker.setLngLat([position.lng, position.lat]).addTo(mapInstance)
-      } else {
-        // Update existing marker
-        const root = markerRoots.get(markerElement)
-        if (root) {
-          // Force re-render with current selection state
-          root.render(<ShipMarker ship={ship} isSelected={isThisShipSelected} />)
-        }
-        marker.setLngLat([position.lng, position.lat])
+      }
+
+      // Always update marker position and content
+      marker.setLngLat([position.lng, position.lat])
+      if (!marker.getElement().parentNode) {
+        marker.addTo(mapInstance)
+      }
+
+      const root = markerRoots.get(markerElement)
+      if (root) {
+        root.render(<ShipMarker ship={ship} isSelected={isThisShipSelected} />)
       }
     })
 
-    // Remove markers for ships that no longer exist
+    // Clean up removed ships
     Object.keys(markers.current).forEach(shipId => {
       if (!ships.find(s => s.id === shipId)) {
         const markerElement = markerElements.current[shipId]

@@ -18,6 +18,9 @@ export function CollapsiblePanel({
 }: CollapsiblePanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  const showLeftChevron = (side === 'left' && !isCollapsed) || (side === 'right' && isCollapsed)
+  const showRightChevron = (side === 'left' && isCollapsed) || (side === 'right' && !isCollapsed)
+
   return (
     <div 
       className={`flex ${side === 'right' ? 'flex-row-reverse' : 'flex-row'} h-full bg-gray-800 border-gray-700 ${
@@ -53,11 +56,13 @@ export function CollapsiblePanel({
           {isCollapsed ? (
             <>
               <span className="mr-2 uppercase tracking-wider text-xs font-medium">{title}</span>
-              {side === 'left' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              {showRightChevron && <ChevronRight data-testid="chevron-right" size={16} />}
+              {showLeftChevron && <ChevronLeft data-testid="chevron-left" size={16} />}
             </>
           ) : (
             <>
-              {side === 'left' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              {showLeftChevron && <ChevronLeft data-testid="chevron-left" size={16} />}
+              {showRightChevron && <ChevronRight data-testid="chevron-right" size={16} />}
               <span className="ml-2 uppercase tracking-wider text-xs font-medium">{title}</span>
             </>
           )}

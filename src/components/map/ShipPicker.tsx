@@ -46,6 +46,7 @@ function ShipPickerItem({ ship }: ShipPickerItemProps) {
   return (
     <div
       ref={drag}
+      data-testid="ship-item"
       className={`p-2 hover:bg-gray-700 rounded cursor-move transition-colors
         ${isDragging ? 'opacity-50' : 'opacity-100'}`}
     >
@@ -73,6 +74,7 @@ function ShipCategory({ title, count, ships, isExpanded, onToggle }: ShipCategor
     <div>
       <button
         onClick={onToggle}
+        data-testid="category-header"
         className="w-full flex items-center justify-between p-2 hover:bg-gray-700 rounded"
       >
         <div className="flex items-center">
@@ -82,7 +84,7 @@ function ShipCategory({ title, count, ships, isExpanded, onToggle }: ShipCategor
         <span className="text-gray-400 text-xs">{isExpanded ? '▼' : '▶'}</span>
       </button>
       {isExpanded && (
-        <div className="ml-2 border-l border-gray-700">
+        <div className="ml-2 border-l border-gray-700" data-testid="ship-list">
           {ships.map(ship => (
             <ShipPickerItem key={ship.id} ship={ship} />
           ))}
@@ -104,7 +106,8 @@ export function ShipPicker() {
     // Load available ships from localStorage or use defaults
     const storedShips = localStorage.getItem('availableShips')
     const shipIds = storedShips ? JSON.parse(storedShips) : []
-    setShips(defaultShips.filter(ship => shipIds.includes(ship.id)))
+    const filteredShips = defaultShips.filter(ship => shipIds.includes(ship.id))
+    setShips(filteredShips)
   }, [])
 
   const filteredShips = ships.filter(ship => 
@@ -119,7 +122,10 @@ export function ShipPicker() {
     }
     acc[category].push(ship)
     return acc
-  }, {} as Record<string, ShipData[]>)
+  }, {
+    'Surface Warship': [],
+    'Submarine': []
+  } as Record<string, ShipData[]>)
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({
@@ -136,16 +142,17 @@ export function ShipPicker() {
           placeholder="Search ships..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
+          data-testid="ship-search-input"
           className="w-full px-3 py-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
       <div className="flex-1 overflow-auto p-2 space-y-2">
-        {Object.entries(shipsByType).map(([category, ships]) => (
+        {Object.entries(shipsByType).map(([category, categoryShips]) => (
           <ShipCategory
             key={category}
             title={category}
-            count={ships.length}
-            ships={ships}
+            count={categoryShips.length}
+            ships={categoryShips}
             isExpanded={expandedCategories[category]}
             onToggle={() => toggleCategory(category)}
           />

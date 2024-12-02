@@ -1,9 +1,10 @@
 import { render, screen, act } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { DroppableMapOverlay } from '../DroppableMapOverlay'
 import { DndProvider, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import type { ShipData } from '@/data/ships'
+import { VesselType } from '@/types/simulation'
 import mapboxgl from 'mapbox-gl'
 
 // Mock mapboxgl
@@ -24,14 +25,35 @@ describe('DroppableMapOverlay', () => {
   const mockShip: ShipData = {
     id: 'test-ship',
     name: 'Test Ship',
-    type: 'carrier',
-    length: 100,
-    beam: 20,
-    draft: 10,
-    displacement: 5000,
-    maxSpeed: 30,
-    turnRadius: 500,
-    description: 'Test ship description'
+    hullNumber: 'TST-01',
+    type: VesselType.SURFACE_WARSHIP,
+    nationality: 'USA',
+    characteristics: {
+      maxSpeed: 30,
+      minSpeed: 0,
+      maxDepth: 0,
+      minDepth: 0,
+      turnRate: 3,
+      accelerationRate: 1,
+      depthChangeRate: 0,
+      propulsion: [
+        {
+          type: 'PROPELLER',
+          configuration: {
+            bladeCount: 5,
+            bladeType: 'Fixed Pitch'
+          }
+        }
+      ]
+    },
+    acousticSignatures: [
+      {
+        type: 'BROADBAND',
+        centerFrequency: 150,
+        bandwidth: 30,
+        signalStrength: 120
+      }
+    ]
   }
 
   const mockMap = {
@@ -60,7 +82,7 @@ describe('DroppableMapOverlay', () => {
 
     // Setup default useDrop mock
     const mockRef = vi.fn()
-    ;(useDrop as jest.Mock).mockReturnValue([{ isOver: false }, mockRef])
+    ;(useDrop as unknown as ReturnType<typeof vi.fn>).mockReturnValue([{ isOver: false }, mockRef])
   })
 
   afterEach(() => {
@@ -77,7 +99,7 @@ describe('DroppableMapOverlay', () => {
   it('handles ship drop with valid coordinates', async () => {
     // Get the drop handler from useDrop config
     let dropHandler: Function | undefined
-    ;(useDrop as jest.Mock).mockImplementation((options) => {
+    ;(useDrop as unknown as ReturnType<typeof vi.fn>).mockImplementation((options: () => { drop: Function }) => {
       dropHandler = options().drop
       return [{ isOver: false }, vi.fn()]
     })
@@ -112,7 +134,7 @@ describe('DroppableMapOverlay', () => {
   it('handles ship drop when map is not available', async () => {
     // Get the drop handler from useDrop config
     let dropHandler: Function | undefined
-    ;(useDrop as jest.Mock).mockImplementation((options) => {
+    ;(useDrop as unknown as ReturnType<typeof vi.fn>).mockImplementation((options: () => { drop: Function }) => {
       dropHandler = options().drop
       return [{ isOver: false }, vi.fn()]
     })
@@ -133,7 +155,7 @@ describe('DroppableMapOverlay', () => {
   it('handles ship drop without client offset', async () => {
     // Get the drop handler from useDrop config
     let dropHandler: Function | undefined
-    ;(useDrop as jest.Mock).mockImplementation((options) => {
+    ;(useDrop as unknown as ReturnType<typeof vi.fn>).mockImplementation((options: () => { drop: Function }) => {
       dropHandler = options().drop
       return [{ isOver: false }, vi.fn()]
     })
@@ -154,7 +176,7 @@ describe('DroppableMapOverlay', () => {
   it('positions drop message correctly', async () => {
     // Get the drop handler from useDrop config
     let dropHandler: Function | undefined
-    ;(useDrop as jest.Mock).mockImplementation((options) => {
+    ;(useDrop as unknown as ReturnType<typeof vi.fn>).mockImplementation((options: () => { drop: Function }) => {
       dropHandler = options().drop
       return [{ isOver: false }, vi.fn()]
     })
