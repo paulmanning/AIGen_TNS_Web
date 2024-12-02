@@ -13,25 +13,29 @@ afterEach(() => {
 });
 
 // Create mock store
-const createMockStore = () => {
-  return configureStore({
-    reducer: {
-      simulation: (state = { simulations: [], currentSimulation: null }) => state,
-    },
-  });
+const mockState = {
+  simulation: {
+    simulations: [],
+    currentSimulation: null,
+    isSetupMode: true,
+    isPaused: true,
+    time: 0,
+    speed: 1,
+  }
 };
 
 // Mock Redux hooks
-vi.mock('react-redux', () => ({
-  useDispatch: () => vi.fn(),
-  useSelector: vi.fn((selector) => selector({
-    simulation: {
-      simulations: [],
-      currentSimulation: null,
-    },
-  })),
-  Provider: ({ children }: { children: React.ReactNode }) => children,
-}));
+vi.mock('react-redux', () => {
+  const dispatch = vi.fn();
+  const useDispatch = () => dispatch;
+  const useSelector = vi.fn((selector) => selector(mockState));
+  
+  return {
+    useDispatch,
+    useSelector,
+    Provider: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
 
 // Mock Next.js router and other navigation utilities
 vi.mock('next/navigation', () => ({
@@ -98,6 +102,9 @@ vi.mock('mapbox-gl', () => ({
 const localStorageMock = {
   getItem: vi.fn((key) => {
     if (key === 'ships') {
+      return JSON.stringify([]);
+    }
+    if (key === 'simulations') {
       return JSON.stringify([]);
     }
     return null;
