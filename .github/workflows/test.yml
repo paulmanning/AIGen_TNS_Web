@@ -28,10 +28,13 @@ jobs:
         echo "NEXT_PUBLIC_MAPBOX_TOKEN=dummy_token_for_tests" >> .env.local
       
     - name: Run tests with coverage
-      run: npm run test -- --coverage --environment jsdom
+      run: |
+        # Run tests with detailed output
+        npm run test -- --coverage --environment jsdom --reporter verbose
       env:
         NODE_ENV: test
         NEXT_PUBLIC_MAPBOX_TOKEN: dummy_token_for_tests
+        CI: true
       
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
@@ -40,13 +43,22 @@ jobs:
         
     - name: Check coverage thresholds
       run: |
-        COVERAGE_OUTPUT=$(npm run test -- --coverage)
+        # Run tests and capture full output
+        COVERAGE_OUTPUT=$(npm run test -- --coverage --reporter verbose)
+        echo "Full test output:"
+        echo "$COVERAGE_OUTPUT"
         
         # Extract coverage percentages
         STATEMENTS=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $2}' | tr -d '%')
         BRANCHES=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $3}' | tr -d '%')
         FUNCTIONS=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $4}' | tr -d '%')
         LINES=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $5}' | tr -d '%')
+        
+        echo "Coverage metrics:"
+        echo "Statements: $STATEMENTS%"
+        echo "Branches: $BRANCHES%"
+        echo "Functions: $FUNCTIONS%"
+        echo "Lines: $LINES%"
         
         # Check against thresholds
         THRESHOLD=80

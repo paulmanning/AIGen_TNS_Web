@@ -11,6 +11,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// Mock Redux hooks
+vi.mock('react-redux', () => ({
+  useDispatch: () => vi.fn(),
+  useSelector: vi.fn(),
+  Provider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock Next.js router and other navigation utilities
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -24,6 +31,9 @@ vi.mock('next/navigation', () => ({
   }),
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+  headers: () => new Headers(),
+  cookies: () => new Map(),
 }));
 
 // Mock Next.js app
@@ -46,6 +56,7 @@ vi.mock('mapbox-gl', () => ({
   default: {
     Map: vi.fn(() => ({
       on: vi.fn(),
+      off: vi.fn(),
       remove: vi.fn(),
       getCanvas: vi.fn(() => ({
         style: {},
@@ -56,9 +67,29 @@ vi.mock('mapbox-gl', () => ({
           height: 600,
         })),
       })),
+      project: vi.fn(() => ({ x: 0, y: 0 })),
+      unproject: vi.fn(() => ({ lat: 0, lng: 0 })),
+    })),
+    Marker: vi.fn(() => ({
+      setLngLat: vi.fn().mockReturnThis(),
+      addTo: vi.fn().mockReturnThis(),
+      remove: vi.fn(),
+      getElement: vi.fn(() => document.createElement('div')),
     })),
   },
 }));
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  clear: vi.fn(),
+  removeItem: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+};
+
+vi.stubGlobal('localStorage', localStorageMock);
 
 // Mock ResizeObserver
 const ResizeObserverMock = vi.fn(() => ({
@@ -76,4 +107,19 @@ const IntersectionObserverMock = vi.fn(() => ({
   disconnect: vi.fn(),
 }));
 
-vi.stubGlobal('IntersectionObserver', IntersectionObserverMock); 
+vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+}); 
