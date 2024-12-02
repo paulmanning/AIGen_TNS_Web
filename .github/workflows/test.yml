@@ -42,7 +42,7 @@ jobs:
         # Run tests and save output
         echo "Running tests with coverage..."
         set -o pipefail  # Ensure pipeline exit status is the status of the last failing command
-        npm run test -- --coverage --environment jsdom --reporter verbose 2>&1 | tee test-output.txt
+        npm run test -- --coverage --environment jsdom --reporter verbose --coverage.reporter=lcov,text,json 2>&1 | tee test-output.txt
         TEST_EXIT_CODE=$?
         
         # Extract coverage metrics
@@ -75,6 +75,12 @@ jobs:
     - name: Upload coverage reports to Codecov
       if: always()
       uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/lcov.info,./coverage/coverage-final.json
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: true
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         

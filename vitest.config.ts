@@ -27,7 +27,7 @@ export default defineConfig({
     outputStyle: 'minimal',
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'lcov', 'html'],
       exclude: [
         'node_modules/**',
         'dist/**',
@@ -42,7 +42,9 @@ export default defineConfig({
       lines: 80,
       functions: 80,
       branches: 80,
-      statements: 80
+      statements: 80,
+      reportsDirectory: './coverage',
+      clean: true,
     },
   },
 }) 
