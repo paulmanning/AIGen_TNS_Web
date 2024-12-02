@@ -21,7 +21,19 @@ const simulationSlice = createSlice({
       
       state.data = {
         ...action.payload,
-        ships: [...(action.payload.ships || [])]
+        ships: action.payload.ships?.map(ship => ({
+          ...ship,
+          position: { ...ship.position },
+          characteristics: { ...ship.characteristics },
+          acousticSignatures: [...(ship.acousticSignatures || [])]
+        })) || [],
+        location: {
+          center: [
+            Number(action.payload.location.center[0].toFixed(4)),
+            Number(action.payload.location.center[1].toFixed(4))
+          ] as [number, number],
+          zoom: Number(action.payload.location.zoom.toFixed(2))
+        }
       }
     }
   }
