@@ -314,3 +314,307 @@ Areas for expansion:
 - Network error states
 - Performance degradation handling
 - Mobile-specific interactions
+
+## Detailed Test Descriptions
+
+### Integration Tests
+
+#### UI Flow Tests (`ui-flow.test.tsx`)
+```typescript
+describe('UI Flow', () => {
+  it('renders the new simulation button', () => {
+    // Verifies that the "New Simulation" button is present in the UI
+    // Expected: Button with text "New Simulation" exists
+  })
+
+  it('opens the new simulation dialog when clicking create button', () => {
+    // Tests the interaction flow for creating a new simulation
+    // Expected: Dialog with heading "Create New Simulation" appears after click
+  })
+})
+```
+
+#### Simulation Flow Tests (`simulation-flow.test.tsx`)
+```typescript
+describe('Simulation Creation Flow', () => {
+  it('renders the simulation setup page', () => {
+    // Verifies the simulation setup page initialization
+    // Expected: Page heading contains simulation name and setup indicator
+  })
+
+  it('displays the available ships panel', () => {
+    // Tests the ship selection panel visibility
+    // Expected: Panel with heading "Available Ships" is present
+  })
+})
+```
+
+### Component Tests
+
+#### Map Components
+
+##### DroppableMapOverlay (`DroppableMapOverlay.test.tsx`)
+```typescript
+describe('DroppableMapOverlay', () => {
+  it('renders the overlay container', () => {
+    // Tests basic overlay rendering
+    // Expected: Overlay element exists with correct positioning classes
+  })
+
+  it('handles ship drop with valid coordinates', async () => {
+    // Tests successful ship placement
+    // Expected: 
+    // - onShipDrop called with correct coordinates
+    // - Drop message displayed and auto-dismissed
+  })
+
+  it('handles ship drop when map is not available', async () => {
+    // Tests error handling for missing map
+    // Expected: onShipDrop not called
+  })
+
+  it('handles ship drop without client offset', async () => {
+    // Tests error handling for invalid drop
+    // Expected: onShipDrop not called
+  })
+
+  it('positions drop message correctly', async () => {
+    // Tests UI feedback positioning
+    // Expected: Message appears at correct coordinates with proper offset
+  })
+})
+```
+
+##### CollapsiblePanel (`CollapsiblePanel.test.tsx`)
+```typescript
+describe('CollapsiblePanel', () => {
+  it('renders panel with title and content', () => {
+    // Tests basic panel rendering
+    // Expected: Title and content visible with correct structure
+  })
+
+  it('toggles collapse state when button is clicked', () => {
+    // Tests panel collapse/expand functionality
+    // Expected: Content opacity changes on click
+  })
+
+  it('shows correct chevron based on side and collapse state - left side', () => {
+    // Tests left side chevron behavior
+    // Expected: Chevron direction changes with panel state
+  })
+
+  it('shows correct chevron based on side and collapse state - right side', () => {
+    // Tests right side chevron behavior
+    // Expected: Chevron direction changes with panel state
+  })
+
+  it('applies correct styles based on side prop', () => {
+    // Tests panel positioning styles
+    // Expected: Correct flex direction applied for each side
+  })
+
+  it('applies custom className when provided', () => {
+    // Tests custom styling support
+    // Expected: Custom class added to panel
+  })
+
+  it('applies collapsed width style when collapsed', () => {
+    // Tests panel width changes
+    // Expected: Width updates on collapse
+  })
+
+  it('maintains correct content order', () => {
+    // Tests DOM structure consistency
+    // Expected: Content and button order maintained
+  })
+
+  it('renders title with correct orientation', () => {
+    // Tests vertical title rendering
+    // Expected: Title has vertical writing mode
+  })
+
+  it('applies correct transform for right side title', () => {
+    // Tests right side title orientation
+    // Expected: Title rotated 180 degrees
+  })
+})
+```
+
+##### SimulationController (`SimulationController.test.tsx`)
+```typescript
+describe('SimulationController', () => {
+  it('displays formatted time', () => {
+    // Tests time display formatting
+    // Expected: Time shown in format "Mar 15, 2024, 10:05:00"
+  })
+
+  it('handles play/pause button click', () => {
+    // Tests play/pause functionality
+    // Expected: onPlayPause callback called when button clicked
+  })
+
+  it('handles speed change', () => {
+    // Tests simulation speed adjustment
+    // Expected: onSpeedChange called with new speed value
+  })
+
+  it('renders ship information when ships are provided', () => {
+    // Tests ship details display
+    // Expected: 
+    // - Ship name displayed
+    // - Course and speed shown with correct formatting
+    // - Proper CSS classes applied
+  })
+})
+```
+
+### Test Patterns
+
+#### Component Setup
+```typescript
+// Common test setup pattern
+const defaultProps = {
+  // Base props with mock functions
+  onTimeChange: vi.fn(),
+  onPlayPause: vi.fn(),
+  // ... other props
+}
+
+const testData = {
+  // Test data factory
+  id: 'test-id',
+  name: 'Test Simulation',
+  // ... other data
+}
+
+beforeEach(() => {
+  // Reset mocks and setup
+  vi.clearAllMocks()
+  vi.useFakeTimers()
+})
+
+afterEach(() => {
+  // Cleanup
+  vi.useRealTimers()
+})
+```
+
+#### Mock Patterns
+```typescript
+// Mock external dependencies
+vi.mock('mapbox-gl', () => ({
+  default: {
+    Map: vi.fn(),
+    LngLat: vi.fn()
+  }
+}))
+
+// Mock React hooks
+vi.mock('react-dnd', () => ({
+  DndProvider: ({ children }) => children,
+  useDrop: vi.fn()
+}))
+
+// Mock complex objects
+const mockMap = {
+  getContainer: vi.fn(() => ({
+    getBoundingClientRect: () => ({
+      left: 0,
+      top: 0
+    })
+  })),
+  unproject: vi.fn()
+} as unknown as mapboxgl.Map
+```
+
+#### Assertion Patterns
+```typescript
+// DOM element presence
+expect(screen.getByText('Test Text')).toBeInTheDocument()
+
+// Style assertions
+expect(element).toHaveClass('expected-class')
+expect(element).toHaveStyle({ property: 'value' })
+
+// Event handling
+fireEvent.click(button)
+expect(mockHandler).toHaveBeenCalled()
+
+// Async operations
+await act(async () => {
+  await userEvent.click(button)
+})
+await waitFor(() => {
+  expect(result).toBe(expected)
+})
+```
+
+### Test Organization
+
+#### File Structure
+```
+__tests__/
+├── ComponentName.test.tsx     # Component tests
+├── utils/                    # Test utilities
+│   ├── setup.ts             # Setup functions
+│   └── mocks.ts             # Mock factories
+└── integration/             # Integration tests
+```
+
+#### Test Grouping
+```typescript
+describe('Component', () => {
+  describe('Rendering', () => {
+    // Rendering tests
+  })
+
+  describe('Interactions', () => {
+    // User interaction tests
+  })
+
+  describe('State Management', () => {
+    // State-related tests
+  })
+
+  describe('Error Handling', () => {
+    // Error case tests
+  })
+})
+```
+
+### Test Coverage Goals
+
+Each test suite aims to verify:
+1. Component Rendering
+   - Basic component structure
+   - Proper class application
+   - Correct content display
+
+2. User Interactions
+   - Click handlers
+   - Drag and drop operations
+   - Form submissions
+   - Keyboard interactions
+
+3. State Management
+   - Component state changes
+   - Redux store updates
+   - Context updates
+
+4. Error Handling
+   - Invalid input handling
+   - Missing prop handling
+   - Network error states
+   - Edge cases
+
+5. Visual Feedback
+   - Loading states
+   - Success/error messages
+   - Animations
+   - Transitions
+
+6. Accessibility
+   - ARIA attributes
+   - Keyboard navigation
+   - Screen reader compatibility
+   - Focus management
