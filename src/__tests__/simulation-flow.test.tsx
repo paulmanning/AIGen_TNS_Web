@@ -6,6 +6,7 @@ import { simulationReducer } from '@/store/simulationSlice'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import React from 'react'
+import Page from '@/app/simulation/page'
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -82,15 +83,6 @@ vi.mock('@/components/ship-details/ShipDetails', () => ({
   ShipDetails: vi.fn(() => React.createElement('div', { 'data-testid': 'ship-details' }, 'Ship Details')),
 }))
 
-// Mock the Page component
-vi.mock('@/app/simulation/page', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'simulation-page' }, [
-    React.createElement('div', { 'data-testid': 'map-component', key: 'map' }, 'Map Component'),
-    React.createElement('div', { 'data-testid': 'ship-picker', key: 'picker' }, 'Available Ships'),
-    React.createElement('div', { 'data-testid': 'simulation-controller', key: 'controller' }, 'Simulation Controller'),
-  ]),
-}))
-
 describe('Simulation Creation Flow', () => {
   const testData = {
     id: 'test-id',
@@ -165,11 +157,7 @@ describe('Simulation Creation Flow', () => {
   }
 
   it('renders the simulation setup page', async () => {
-    const { container } = renderWithProviders(React.createElement('div', { 'data-testid': 'simulation-page' }, [
-      React.createElement('div', { 'data-testid': 'map-component', key: 'map' }, 'Map Component'),
-      React.createElement('div', { 'data-testid': 'ship-picker', key: 'picker' }, 'Available Ships'),
-      React.createElement('div', { 'data-testid': 'simulation-controller', key: 'controller' }, 'Simulation Controller'),
-    ]))
+    const { container } = renderWithProviders(<Page />)
     
     // Debug output
     await waitFor(() => {
@@ -184,11 +172,7 @@ describe('Simulation Creation Flow', () => {
   })
 
   it('displays the available ships panel', async () => {
-    const { container } = renderWithProviders(React.createElement('div', { 'data-testid': 'simulation-page' }, [
-      React.createElement('div', { 'data-testid': 'map-component', key: 'map' }, 'Map Component'),
-      React.createElement('div', { 'data-testid': 'ship-picker', key: 'picker' }, 'Available Ships'),
-      React.createElement('div', { 'data-testid': 'simulation-controller', key: 'controller' }, 'Simulation Controller'),
-    ]))
+    const { container } = renderWithProviders(<Page />)
     
     // Debug output
     await waitFor(() => {
