@@ -158,3 +158,159 @@ describe('Async Component', () => {
 3. Add performance testing
 4. Expand integration test coverage
 5. Add API mocking layer 
+
+## Current Test Coverage
+
+### Integration Tests (`src/__tests__/`)
+
+#### UI Flow Tests (`ui-flow.test.tsx`)
+Tests the main application flow and user interactions:
+- `renders the new simulation button` - Verifies initial UI state
+- `opens the new simulation dialog when clicking create button` - Tests dialog interaction
+
+#### Simulation Flow Tests (`simulation-flow.test.tsx`)
+Tests core simulation functionality:
+- `renders the simulation setup page` - Verifies simulation initialization
+- `displays the available ships panel` - Tests ship selection UI
+
+### Component Tests
+
+#### Map Components
+
+##### MapComponent (`src/components/map/__tests__/MapComponent.test.tsx`)
+Tests the main map visualization:
+- Map initialization and cleanup
+- Marker rendering and updates
+- Ship trail visualization
+- Viewport controls
+- Drag and drop integration
+
+##### DroppableMapOverlay (`src/components/map/__tests__/DroppableMapOverlay.test.tsx`)
+Tests map overlay drag and drop functionality:
+- Drop zone activation
+- Ship placement handling
+- Coordinate conversion
+- Hover state management
+- Drop validation
+
+##### ShipMarker (`src/components/map/__tests__/ShipMarker.test.tsx`)
+Tests ship marker visualization:
+- Marker rendering with correct position
+- Course arrow display
+- Ship icon selection
+- Nationality flag display
+- Selection state handling
+
+##### ShipPicker (`src/components/map/__tests__/ShipPicker.test.tsx`)
+Tests ship selection interface:
+- Ship list rendering
+- Category filtering
+- Search functionality
+- Drag source setup
+- Ship preview display
+
+#### UI Components
+
+##### CollapsiblePanel (`src/components/ui/__tests__/CollapsiblePanel.test.tsx`)
+Tests collapsible panel behavior:
+- Panel expansion/collapse
+- Header rendering
+- Content visibility
+- Animation states
+- Accessibility features
+
+#### Simulation Components
+
+##### SimulationController (`src/components/simulation/__tests__/SimulationController.test.tsx`)
+Tests simulation control interface:
+- Time display formatting
+- Play/pause functionality
+- Speed control
+- Ship selection
+- Course/speed updates
+
+##### SimulationControls (`src/components/simulation/__tests__/SimulationControls.test.tsx`)
+Tests simulation control elements:
+- Time controls
+- Speed adjustment
+- Restart functionality
+- State synchronization
+- UI feedback
+
+##### SimulationList (`src/components/simulation/__tests__/SimulationList.test.tsx`)
+Tests simulation management:
+- List rendering
+- Simulation selection
+- Creation dialog
+- Deletion handling
+- State persistence
+
+#### Layout Components
+
+##### MainLayout (`src/components/layout/__tests__/MainLayout.test.tsx`)
+Tests application layout structure:
+- Component arrangement
+- Navigation elements
+- Responsive behavior
+- Child component rendering
+- Header/footer placement
+
+### Test Utilities
+
+#### Custom Render Function
+```typescript
+function customRender(ui: React.ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <Provider store={store}>
+        <DndProvider backend={HTML5Backend}>
+          {children}
+        </DndProvider>
+      </Provider>
+    ),
+    ...options,
+  })
+}
+```
+
+#### Mock Factories
+```typescript
+export const createMockShip = (overrides: Partial<ShipData> = {}): ShipData => ({
+  id: 'test-ship-1',
+  name: 'USS Test Ship',
+  hullNumber: 'TST-01',
+  type: VesselType.SURFACE_WARSHIP,
+  nationality: 'USA',
+  maxSpeed: 30,
+  maxTurnRate: 10,
+  ...overrides
+})
+```
+
+#### Test IDs
+```typescript
+export const testIds = {
+  searchInput: 'ship-search-input',
+  shipItem: 'ship-item',
+  categoryHeader: 'category-header',
+  shipList: 'ship-list',
+  dragHandle: 'drag-handle'
+}
+```
+
+### Coverage Summary
+Current test coverage focuses on:
+- Core simulation logic
+- User interface interactions
+- Map visualization components
+- State management
+- Drag and drop functionality
+- Time control systems
+- Ship management features
+
+Areas for expansion:
+- Error handling scenarios
+- Edge cases in ship movement
+- Network error states
+- Performance degradation handling
+- Mobile-specific interactions
