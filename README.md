@@ -42,6 +42,7 @@ For detailed technical specifications and UI requirements, see [specification.md
 - Responsive design with Tailwind CSS
 - React DnD for drag and drop operations
 - Local storage persistence
+- Comprehensive testing with Vitest
 
 ## Getting Started
 
@@ -86,14 +87,41 @@ npm run dev
 # Run tests
 npm test
 
-# Run tests in watch mode
-npm run test:watch
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests with UI
+npm run test:ui
 
 # Run development server with test watcher
 npm run dev:test
 
+# Run development server with full test suite
+npm run dev:full
+
 # Run linter
 npm run lint
+```
+
+### Testing
+
+The project uses Vitest as its testing framework, providing:
+- Fast, modern test runner with native TypeScript support
+- Real-time test feedback during development
+- Interactive testing UI with @vitest/ui
+- Comprehensive test coverage reporting
+- Integration with React Testing Library
+- Mocked environment for Next.js App Router and Mapbox GL
+
+Key testing files:
+```
+src/
+├── __tests__/                # Integration tests
+│   ├── ui-flow.test.tsx     # UI interaction tests
+│   └── simulation-flow.test.tsx  # Simulation logic tests
+├── components/
+│   └── __tests__/           # Component unit tests
+└── test-setup.ts            # Test environment configuration
 ```
 
 ## Project Structure
@@ -133,3 +161,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Maps powered by [Mapbox GL JS](https://www.mapbox.com/mapbox-gl-js)
 - UI styled with [Tailwind CSS](https://tailwindcss.com/)
 - Drag and Drop powered by [React DnD](https://react-dnd.github.io/react-dnd/)
+- Testing powered by [Vitest](https://vitest.dev/)

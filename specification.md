@@ -2,9 +2,44 @@
 
 ## **Development Environment Setup:**
 
-This application will be developed using Test-Driven Development (TDD) principles, ensuring thorough unit testing for every function and feature.  I want industry best practices used for all set up, configuration, testing and application development using modern cross platform compatible tools.
+This application will be developed using Test-Driven Development (TDD) principles, ensuring thorough unit testing for every function and feature. I want industry best practices used for all set up, configuration, testing and application development using modern cross platform compatible tools.
 
 - The application will be developed on a MacBook Air (M1) using a clean development environment.
+
+### Testing Environment
+
+The application uses Vitest as its primary testing framework, chosen for its:
+- Modern architecture and native TypeScript support
+- Fast, parallel test execution
+- Real-time test feedback during development
+- Comprehensive test coverage reporting
+- Seamless integration with React Testing Library
+- Built-in UI for test visualization and debugging
+
+#### Test Structure
+```
+src/
+├── __tests__/                # Integration tests
+│   ├── ui-flow.test.tsx     # UI interaction tests
+│   └── simulation-flow.test.tsx  # Simulation logic tests
+├── components/
+│   └── __tests__/           # Component unit tests
+└── test-setup.ts            # Test environment configuration
+```
+
+#### Test Environment Configuration
+- Mocked Next.js App Router for testing page components
+- Mocked Mapbox GL JS for map interaction testing
+- Mocked browser APIs (localStorage, ResizeObserver, etc.)
+- Custom test utilities and fixtures
+- Configured for React Testing Library best practices
+
+#### Testing Standards
+- All new features must include comprehensive tests
+- Integration tests for user flows and interactions
+- Unit tests for individual components and utilities
+- Minimum 80% test coverage requirement
+- Tests must run in CI/CD pipeline before deployment
 
 ### Project Structure
 ```
