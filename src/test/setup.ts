@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { configureStore } from '@reduxjs/toolkit';
 
 // Extend expect matchers
 expect.extend({});
@@ -11,10 +12,24 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// Create mock store
+const createMockStore = () => {
+  return configureStore({
+    reducer: {
+      simulation: (state = { simulations: [], currentSimulation: null }) => state,
+    },
+  });
+};
+
 // Mock Redux hooks
 vi.mock('react-redux', () => ({
   useDispatch: () => vi.fn(),
-  useSelector: vi.fn(),
+  useSelector: vi.fn((selector) => selector({
+    simulation: {
+      simulations: [],
+      currentSimulation: null,
+    },
+  })),
   Provider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
@@ -79,9 +94,14 @@ vi.mock('mapbox-gl', () => ({
   },
 }));
 
-// Mock localStorage
+// Mock localStorage with initial ship data
 const localStorageMock = {
-  getItem: vi.fn(),
+  getItem: vi.fn((key) => {
+    if (key === 'ships') {
+      return JSON.stringify([]);
+    }
+    return null;
+  }),
   setItem: vi.fn(),
   clear: vi.fn(),
   removeItem: vi.fn(),

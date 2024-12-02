@@ -35,6 +35,7 @@ jobs:
         NODE_ENV: test
         NEXT_PUBLIC_MAPBOX_TOKEN: dummy_token_for_tests
         CI: true
+        DEBUG: 'true'
       
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
@@ -81,4 +82,13 @@ jobs:
         if (( $(echo "$LINES < $THRESHOLD" | bc -l) )); then
           echo "Line coverage ($LINES%) is below threshold ($THRESHOLD%)"
           exit 1
-        fi 
+        fi
+        
+    - name: Archive test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: |
+          coverage/
+          test-results/
