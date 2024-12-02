@@ -14,7 +14,7 @@ interface ShipDetailsProps {
 export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsProps) {
   if (!ship) {
     return (
-      <div className="p-4 text-gray-500 dark:text-gray-400 text-center">
+      <div className="p-4 text-navy-light text-center">
         Select a ship to view details
       </div>
     )
@@ -28,7 +28,7 @@ export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsPr
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-lg font-semibold mb-4">Ship Details</h2>
+      <h2 className="navy-title mb-4">Ship Details</h2>
       
       {/* Basic Info */}
       <div className="space-y-2">
@@ -37,8 +37,8 @@ export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsPr
             {getShipIcon(ship.type, ship.nationality, ship.id)}
           </span>
           <div>
-            <h3 className="font-medium">{ship.name}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h3 className="font-medium text-navy-lightest">{ship.name}</h3>
+            <p className="text-sm text-navy-light">
               {ship.hullNumber}
             </p>
           </div>
@@ -47,28 +47,28 @@ export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsPr
 
       {/* Current State (only in run mode) */}
       {!isSetupMode && simulationShip && (
-        <div className="space-y-2 border-l-2 border-blue-500 pl-2">
-          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+        <div className="space-y-2 border-l-2 border-accent-gold pl-2">
+          <h4 className="navy-subtitle">
             Current State
           </h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Position:</span>
-              <div>
+              <span className="text-navy-light">Position:</span>
+              <div className="text-navy-lightest">
                 {formatNumber(simulationShip.position?.lat, 4)}°N, {formatNumber(simulationShip.position?.lng, 4)}°E
               </div>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Course:</span>
-              <div>{formatNumber(simulationShip.course)}°</div>
+              <span className="text-navy-light">Course:</span>
+              <div className="text-navy-lightest">{formatNumber(simulationShip.course)}°</div>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Speed:</span>
-              <div>{formatNumber(simulationShip.speed)} kts</div>
+              <span className="text-navy-light">Speed:</span>
+              <div className="text-navy-lightest">{formatNumber(simulationShip.speed)} kts</div>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Depth:</span>
-              <div>{formatNumber(simulationShip.depth, 0)} m</div>
+              <span className="text-navy-light">Depth:</span>
+              <div className="text-navy-lightest">{formatNumber(simulationShip.depth, 0)} m</div>
             </div>
           </div>
         </div>
@@ -77,29 +77,29 @@ export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsPr
       {/* Characteristics */}
       {ship.characteristics && (
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+          <h4 className="navy-subtitle">
             Characteristics
           </h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Speed:</span>
-              <div>
+              <span className="text-navy-light">Speed:</span>
+              <div className="text-navy-lightest">
                 {ship.characteristics.minSpeed || 0} - {ship.characteristics.maxSpeed || 30} kts
               </div>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Depth:</span>
-              <div>
+              <span className="text-navy-light">Depth:</span>
+              <div className="text-navy-lightest">
                 {ship.characteristics.minDepth || 0} - {ship.characteristics.maxDepth || 0} m
               </div>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Turn Rate:</span>
-              <div>{ship.characteristics.turnRate || 6}°/min</div>
+              <span className="text-navy-light">Turn Rate:</span>
+              <div className="text-navy-lightest">{ship.characteristics.turnRate || 6}°/min</div>
             </div>
             <div>
-              <span className="text-gray-600 dark:text-gray-400">Acceleration:</span>
-              <div>{ship.characteristics.accelerationRate || 2} kts/min</div>
+              <span className="text-navy-light">Acceleration:</span>
+              <div className="text-navy-lightest">{ship.characteristics.accelerationRate || 2} kts/min</div>
             </div>
           </div>
         </div>
@@ -108,16 +108,16 @@ export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsPr
       {/* Propulsion */}
       {ship.characteristics?.propulsion && (
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+          <h4 className="navy-subtitle">
             Propulsion
           </h4>
           {ship.characteristics.propulsion.map((prop, index) => (
             <div key={index} className="text-sm">
-              <div className="text-gray-600 dark:text-gray-400">
+              <div className="text-navy-light">
                 {prop.type}
               </div>
               {prop.configuration?.bladeCount && (
-                <div>
+                <div className="text-navy-lightest">
                   {prop.configuration.bladeCount} blade {prop.configuration.bladeType}
                 </div>
               )}
@@ -129,29 +129,29 @@ export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsPr
       {/* Acoustic Signatures */}
       {ship.acousticSignatures && ship.acousticSignatures.length > 0 && (
         <div className="space-y-2">
-          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+          <h4 className="navy-subtitle">
             Acoustic Signatures
           </h4>
           {ship.acousticSignatures.map((sig, index) => (
-            <div key={index} className="text-sm border-l-2 border-gray-300 pl-2">
-              <div className="font-medium">{sig.type}</div>
+            <div key={index} className="text-sm border-l-2 border-navy-medium pl-2">
+              <div className="font-medium text-navy-lightest">{sig.type}</div>
               <div className="grid grid-cols-2 gap-1">
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">Center:</span>
-                  <div>{sig.centerFrequency} Hz</div>
+                  <span className="text-navy-light">Center:</span>
+                  <div className="text-navy-lightest">{sig.centerFrequency} Hz</div>
                 </div>
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">Bandwidth:</span>
-                  <div>{sig.bandwidth} Hz</div>
+                  <span className="text-navy-light">Bandwidth:</span>
+                  <div className="text-navy-lightest">{sig.bandwidth} Hz</div>
                 </div>
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">Strength:</span>
-                  <div>{sig.signalStrength} dB</div>
+                  <span className="text-navy-light">Strength:</span>
+                  <div className="text-navy-lightest">{sig.signalStrength} dB</div>
                 </div>
                 {sig.driftRate && (
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">Drift:</span>
-                    <div>{sig.driftRate} Hz/min</div>
+                    <span className="text-navy-light">Drift:</span>
+                    <div className="text-navy-lightest">{sig.driftRate} Hz/min</div>
                   </div>
                 )}
               </div>

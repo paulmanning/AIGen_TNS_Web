@@ -42,7 +42,6 @@ function DraggableShip({ ship, isSelected, onSelect }: {
     })
   }), [ship])
 
-  // Use empty image as default preview
   useEffect(() => {
     preview(getEmptyImage(), { captureDraggingState: true })
   }, [preview])
@@ -52,19 +51,21 @@ function DraggableShip({ ship, isSelected, onSelect }: {
       ref={drag}
       onClick={onSelect}
       className={`
-        p-4 cursor-move select-none
-        hover:bg-gray-200 dark:hover:bg-gray-700
+        p-4 cursor-move select-none transition-colors border-l-4
         ${isDragging ? 'opacity-50' : ''}
-        ${isSelected ? 'bg-blue-100 dark:bg-blue-900' : ''}
+        ${isSelected 
+          ? 'bg-navy-medium border-accent-gold text-accent-gold' 
+          : 'hover:bg-navy-dark hover:border-navy-light border-transparent text-navy-lightest'
+        }
       `}
     >
       <div className="flex items-center space-x-3">
-        <span className="text-2xl" role="img" aria-label={ship.type}>
+        <span className={`text-2xl ${isSelected ? 'text-accent-gold' : ''}`} role="img" aria-label={ship.type}>
           {getShipIcon(ship.type, ship.nationality, ship.id)}
         </span>
         <div>
           <div className="font-medium">{ship.name}</div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className={`text-sm ${isSelected ? 'text-accent-gold' : 'text-navy-light'}`}>
             {ship.hullNumber}
           </div>
         </div>
@@ -131,14 +132,14 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b dark:border-gray-700">
-        <h2 className="text-lg font-semibold mb-4 select-none">Available Ships</h2>
+      <div className="p-4 border-b border-navy-medium">
+        <h2 className="navy-title mb-4">Available Ships</h2>
         <input
           type="text"
           placeholder="Search ships..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          className="navy-input w-full"
         />
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -158,13 +159,12 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
                   }
                   return newSet
                 })}
-                className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 
+                className="w-full px-4 py-2 bg-navy-medium hover:bg-navy-dark 
                          font-medium flex items-center justify-between 
-                         hover:bg-gray-300 dark:hover:bg-gray-600
-                         select-none"
+                         text-navy-lightest"
               >
                 <span>{getTypeLabel(type)} ({shipsOfType.length})</span>
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-navy-light">
                   {collapsedTypes.has(type) ? '▼' : '▲'}
                 </span>
               </button>

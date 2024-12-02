@@ -242,31 +242,31 @@ export default function SimulationPage() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="fixed inset-0 flex flex-col">
+      <div className="fixed inset-0 flex flex-col bg-navy-darkest">
         {/* Title Bar */}
-        <div className="flex-none bg-gray-800 text-white p-4">
+        <div className="flex-none bg-navy-dark border-b border-navy-medium p-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold">
+            <h1 className="navy-title">
               Naval Tactical Simulator - {simulation.name} ({isSetupMode ? 'Setup' : 'Run'})
             </h1>
             <div className="flex gap-4">
               <button 
                 onClick={handleReset}
-                className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 transition-colors"
+                className="navy-button-danger"
               >
                 Reset
               </button>
               {isSetupMode ? (
                 <button 
                   onClick={handleSave}
-                  className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 transition-colors"
+                  className="navy-button-primary"
                 >
                   Save
                 </button>
               ) : (
                 <button 
                   onClick={handleReturnToSetup}
-                  className="px-3 py-1 rounded bg-yellow-600 hover:bg-yellow-700 transition-colors"
+                  className="navy-button"
                 >
                   Setup
                 </button>
@@ -279,7 +279,7 @@ export default function SimulationPage() {
         <div className="flex-1 flex min-h-0">
           {/* Left Sidebar - Ship Picker (only visible in setup mode) */}
           {isSetupMode && (
-            <div className="w-64 flex-none bg-gray-100 border-r dark:bg-gray-800 dark:border-gray-700">
+            <div className="w-64 flex-none navy-panel border-r">
               <ShipPicker
                 onSelect={setSelectedShip}
                 selectedShipId={selectedShip?.id}
@@ -305,7 +305,7 @@ export default function SimulationPage() {
             </div>
 
             {/* Simulation Controls */}
-            <div className="flex-none h-48 bg-gray-100 border-t dark:bg-gray-800 dark:border-gray-700">
+            <div className="flex-none h-48 navy-panel border-t">
               <SimulationController
                 ships={simulation.ships || []}
                 currentTime={currentTime}
@@ -326,7 +326,7 @@ export default function SimulationPage() {
 
           {/* Right Sidebar - Ship Details */}
           {selectedShip && (
-            <div className="w-80 flex-none bg-gray-100 border-l dark:bg-gray-800 dark:border-gray-700">
+            <div className="w-80 flex-none navy-panel border-l">
               <ShipDetails
                 ship={selectedShip}
                 isSetupMode={isSetupMode}

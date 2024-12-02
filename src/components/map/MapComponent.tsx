@@ -39,6 +39,7 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
   const isUserInteraction = useRef(false)
   const lastCenter = useRef(center)
   const lastZoom = useRef(zoom)
+  const resizeObserver = useRef<ResizeObserver | null>(null)
 
   // Memoize the change handler to prevent unnecessary updates
   const handleMapChange = useCallback(() => {
@@ -57,6 +58,21 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
       onChange([newCenter.lng, newCenter.lat], newZoom)
     }
   }, [onChange])
+
+  // Handle map resize
+  const handleResize = useCallback(() => {
+    if (map.current) {
+      map.current.resize()
+      
+      // Force marker updates after resize
+      Object.entries(markers.current).forEach(([id, marker]) => {
+        const ship = ships.find(s => s.id === id)
+        if (ship) {
+          marker.setLngLat([ship.position.lng, ship.position.lat])
+        }
+      })
+    }
+  }, [ships])
 
   // Initialize map
   useEffect(() => {
@@ -82,11 +98,16 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
       map.current.on('moveend', handleMapChange)
       map.current.on('zoomend', handleMapChange)
 
+      // Set up resize observer
+      resizeObserver.current = new ResizeObserver(handleResize)
+      resizeObserver.current.observe(mapContainer.current)
+
     } catch (error) {
       console.error('Error initializing map:', error)
     }
 
     return () => {
+      resizeObserver.current?.disconnect()
       Object.values(markers.current).forEach(marker => marker.remove())
       markers.current = {}
       map.current?.remove()
@@ -100,9 +121,20 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
       return
     }
 
-    map.current.setCenter(center)
-    map.current.setZoom(zoom)
-  }, [center, zoom])
+    const currentMap = map.current
+    currentMap.setCenter(center)
+    currentMap.setZoom(zoom)
+    
+    // Ensure markers are in correct positions after map update
+    requestAnimationFrame(() => {
+      Object.entries(markers.current).forEach(([id, marker]) => {
+        const ship = ships.find(s => s.id === id)
+        if (ship) {
+          marker.setLngLat([ship.position.lng, ship.position.lat])
+        }
+      })
+    })
+  }, [center, zoom, ships])
 
   // Update markers when ships change
   useEffect(() => {
@@ -121,22 +153,11 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
 
     // Update or create markers for each ship
     ships.forEach(ship => {
-      console.log('Processing ship:', ship.id, ship.position)
-      
-      // Generate random course and speed if not exists
-      if (!shipCourses.current[ship.id]) {
-        shipCourses.current[ship.id] = Math.floor(Math.random() * 360)
-        const minSpeed = ship.characteristics?.minSpeed || 0
-        const maxSpeed = ship.characteristics?.maxSpeed || 30
-        shipSpeeds.current[ship.id] = minSpeed + Math.random() * (maxSpeed - minSpeed)
-      }
-
       try {
         let marker = markers.current[ship.id]
         
         if (!marker) {
           // Create new marker if it doesn't exist
-          console.log('Creating new marker for ship:', ship.id)
           const markerElement = document.createElement('div')
           markerElement.className = 'ship-marker-container'
           

@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Navy Theme Colors */
+  --navy-darkest: #0A192F;    /* Dark Navy Blue - Main background */
+  --navy-dark: #112240;       /* Slightly lighter navy - Secondary background */
+  --navy-medium: #233554;     /* Medium navy - Borders and dividers */
+  --navy-light: #8892B0;      /* Light navy - Secondary text */
+  --navy-lightest: #CCD6F6;   /* Lightest navy - Primary text */
+  --accent-gold: #FFD700;     /* Navy Gold - Accents and highlights */
+  --accent-red: #DC3545;      /* Alert/Warning red */
+  --accent-green: #28A745;    /* Success green */
+}
+
+@layer base {
+  body {
+    @apply bg-navy-darkest text-navy-lightest;
+  }
+
+  /* Custom select styling */
+  select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238892B0' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+  }
+
+  select option {
+    @apply bg-navy-dark text-navy-lightest;
+    color: #CCD6F6;
+    background-color: #112240;
+  }
+
+  /* Custom range input styling */
+  input[type="range"] {
+    @apply appearance-none bg-transparent;
+    height: 6px;
+  }
+
+  /* Webkit (Chrome, Safari) */
+  input[type="range"]::-webkit-slider-runnable-track {
+    @apply bg-navy-medium rounded-full;
+    height: 6px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none bg-accent-gold border-2 border-accent-gold rounded-full cursor-pointer;
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+  }
+
+  input[type="range"]:hover::-webkit-slider-thumb {
+    @apply bg-yellow-400 border-yellow-400;
+  }
+
+  /* Firefox */
+  input[type="range"]::-moz-range-track {
+    @apply bg-navy-medium rounded-full;
+    height: 6px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    @apply bg-accent-gold border-2 border-accent-gold rounded-full cursor-pointer;
+    width: 16px;
+    height: 16px;
+  }
+
+  input[type="range"]:hover::-moz-range-thumb {
+    @apply bg-yellow-400 border-yellow-400;
+  }
+
+  /* Edge/IE */
+  input[type="range"]::-ms-track {
+    @apply bg-navy-medium rounded-full;
+    height: 6px;
+  }
+
+  input[type="range"]::-ms-thumb {
+    @apply bg-accent-gold border-2 border-accent-gold rounded-full cursor-pointer;
+    width: 16px;
+    height: 16px;
+  }
+
+  input[type="range"]:hover::-ms-thumb {
+    @apply bg-yellow-400 border-yellow-400;
+  }
+}
+
+@layer components {
+  .navy-button {
+    @apply px-4 py-2 rounded font-medium transition-colors
+           bg-navy-medium text-navy-lightest
+           hover:bg-navy-dark hover:text-accent-gold
+           focus:outline-none focus:ring-2 focus:ring-accent-gold;
+  }
+
+  .navy-button-primary {
+    @apply navy-button bg-accent-gold text-navy-darkest
+           hover:bg-yellow-400 hover:text-navy-darkest;
+  }
+
+  .navy-button-danger {
+    @apply navy-button bg-accent-red hover:bg-red-600;
+  }
+
+  .navy-panel {
+    @apply bg-navy-dark border-navy-medium border rounded-lg shadow-lg;
+  }
+
+  .navy-input {
+    @apply bg-navy-darkest border border-navy-medium rounded-md px-3 py-2
+           text-navy-lightest placeholder-navy-light
+           focus:outline-none focus:ring-2 focus:ring-accent-gold focus:border-transparent;
+  }
+
+  .navy-select {
+    @apply bg-navy-dark border border-navy-medium rounded-md px-3 py-2
+           text-navy-lightest placeholder-navy-light
+           focus:outline-none focus:ring-2 focus:ring-accent-gold focus:border-transparent
+           appearance-none pr-8;
+    background-color: #112240;
+    color: #CCD6F6;
+  }
+
+  .navy-compact-select {
+    @apply bg-navy-dark rounded-md
+           text-navy-lightest text-sm
+           focus:outline-none focus:ring-2 focus:ring-accent-gold focus:border-accent-gold
+           appearance-none pl-2 pr-6 py-1
+           border border-navy-lightest;
+    background-color: #112240;
+    color: #CCD6F6;
+  }
+
+  .navy-title {
+    @apply text-xl font-bold text-navy-lightest;
+  }
+
+  .navy-subtitle {
+    @apply text-lg font-semibold text-navy-light;
+  }
+
+  .navy-card {
+    @apply bg-navy-dark border border-navy-medium rounded-lg p-4 shadow-lg;
+  }
+
+  .navy-divider {
+    @apply border-t border-navy-medium my-4;
+  }
+} 
