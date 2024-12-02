@@ -86,7 +86,18 @@ export default function SimulationPage() {
     setIsPlaying(false) // Start in paused state
     setCurrentTime(0)   // Reset time to start
     resetInitialPositions()  // Reset positions when starting simulation
-    localStorage.setItem('currentSimulation', JSON.stringify(simulation))
+    
+    // Store the initial state when saving
+    localStorage.setItem('currentSimulation', JSON.stringify({
+      ...simulation,
+      ships: simulation.ships?.map(ship => ({
+        ...ship,
+        position: { ...ship.position },  // Make a copy of the position
+        course: ship.course,
+        speed: ship.speed,
+        depth: ship.depth
+      }))
+    }))
     console.log('Saved simulation:', simulation)
   }
 
@@ -244,20 +255,32 @@ export default function SimulationPage() {
   }, [simulation, dispatch])
 
   const handleRestart = useCallback(() => {
-    setCurrentTime(0)
-    setIsPlaying(false)
-    resetInitialPositions()  // Reset positions on restart
-    
-    // Reset ships to their initial positions
-    if (simulation?.ships) {
-      const resetShips = simulation.ships.map(ship => ({
-        ...ship,
-        course: 0,
-        speed: 0,
-        depth: 0
-      }))
+    // Get initial state from localStorage
+    const savedSimulation = localStorage.getItem('currentSimulation')
+    const initialState = savedSimulation ? JSON.parse(savedSimulation) : null
+
+    if (simulation?.ships && initialState?.ships) {
+      // Reset ships to their initial positions
+      const resetShips = simulation.ships.map(ship => {
+        const initialShip = initialState.ships.find((s: SimulationShip) => s.id === ship.id)
+        if (initialShip) {
+          return {
+            ...ship,
+            position: { ...initialShip.position },
+            course: initialShip.course,
+            speed: initialShip.speed,
+            depth: initialShip.depth
+          }
+        }
+        return ship
+      })
       handleShipUpdate(resetShips)
     }
+
+    // Reset time and playback state
+    setCurrentTime(0)
+    setIsPlaying(false)
+    resetInitialPositions()
   }, [simulation, handleShipUpdate])
 
   const handleSpeedChange = useCallback((speed: number) => {

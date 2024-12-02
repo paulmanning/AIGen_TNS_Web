@@ -42,6 +42,7 @@ function formatDateTime(isoString: string, addSeconds: number = 0): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
     hour12: false
   })
 }
@@ -63,31 +64,20 @@ export function SimulationController({
   onSpeedChange,
 }: SimulationControllerProps) {
   const durationInSeconds = duration * 60
-  const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null)
-  const [lastRealTime, setLastRealTime] = useState<number>(Date.now())
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now())
+  const [displayTime, setDisplayTime] = useState<number>(0)
 
-  // Handle animation frame updates for playback
+  // Handle animation updates every second
   useEffect(() => {
     if (!isPlaying) {
-      setLastUpdateTime(null)
-      setLastRealTime(Date.now())
+      setDisplayTime(currentTime)
       return
     }
 
-    let animationFrameId: number
-
-    const updateFrame = (timestamp: number) => {
+    const intervalId = setInterval(() => {
       const now = Date.now()
-      if (lastUpdateTime === null) {
-        setLastUpdateTime(timestamp)
-        setLastRealTime(now)
-        animationFrameId = requestAnimationFrame(updateFrame)
-        return
-      }
-
-      // Calculate real elapsed time and apply speed multiplier
-      const realElapsed = (now - lastRealTime) / 1000 // Convert to seconds
-      const simulatedElapsed = realElapsed * simulationSpeed
+      const realElapsed = (now - lastUpdateTime) / 1000 // Convert to seconds
+      const simulatedElapsed = simulationSpeed // One second * speed multiplier
 
       const newTime = Math.min(currentTime + simulatedElapsed, durationInSeconds)
       
@@ -95,22 +85,25 @@ export function SimulationController({
         // Stop playback at the end
         onPlayPause()
         onTimeChange(durationInSeconds)
+        setDisplayTime(durationInSeconds)
       } else {
         onTimeChange(newTime)
-        setLastUpdateTime(timestamp)
-        setLastRealTime(now)
-        animationFrameId = requestAnimationFrame(updateFrame)
+        setDisplayTime(newTime)
+        setLastUpdateTime(now)
       }
-    }
-
-    animationFrameId = requestAnimationFrame(updateFrame)
+    }, 1000) // Update every second
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
+      clearInterval(intervalId)
     }
-  }, [isPlaying, currentTime, simulationSpeed, durationInSeconds, lastUpdateTime, lastRealTime, onTimeChange, onPlayPause])
+  }, [isPlaying, currentTime, simulationSpeed, durationInSeconds, lastUpdateTime, onTimeChange, onPlayPause])
+
+  // Update display time when time changes manually (e.g., slider)
+  useEffect(() => {
+    if (!isPlaying) {
+      setDisplayTime(currentTime)
+    }
+  }, [currentTime, isPlaying])
 
   // Generate tick marks every 30 minutes
   const timeMarks = useMemo(() => {
@@ -130,8 +123,7 @@ export function SimulationController({
     if (isPlaying) {
       onPlayPause() // Pause playback
     }
-    onRestart() // Reset to initial state
-    onTimeChange(0) // Reset time to 0
+    onTimeChange(0)
   }
 
   return (
@@ -245,7 +237,7 @@ export function SimulationController({
               <select
                 value={simulationSpeed}
                 onChange={(e) => onSpeedChange(Number(e.target.value))}
-                className="navy-select"
+                className="navy-select bg-navy-dark"
                 title="Simulation Speed"
               >
                 <option value="1">1×</option>
@@ -257,7 +249,7 @@ export function SimulationController({
               </select>
             </div>
             <div className="text-navy-lightest">
-              {formatDateTime(startTime, currentTime)}
+              {formatDateTime(startTime, displayTime)}
             </div>
           </div>
         </>
