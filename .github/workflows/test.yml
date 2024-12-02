@@ -20,7 +20,9 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm ci
+        npm install -g vitest
       
     - name: Create env file
       run: |
@@ -28,9 +30,33 @@ jobs:
         echo "NEXT_PUBLIC_MAPBOX_TOKEN=dummy_token_for_tests" >> .env.local
       
     - name: Run tests with coverage
+      id: test-coverage
       run: |
-        # Run tests with detailed output
-        npm run test -- --coverage --environment jsdom --reporter verbose
+        # Run tests and save output
+        echo "Running tests with coverage..."
+        OUTPUT=$(npm run test -- --coverage --environment jsdom --reporter verbose 2>&1)
+        echo "$OUTPUT"
+        
+        # Save output to a file for processing
+        echo "$OUTPUT" > test-output.txt
+        
+        # Extract coverage metrics
+        STATEMENTS=$(echo "$OUTPUT" | grep "All files" | awk '{print $2}' | tr -d '%' || echo "0")
+        BRANCHES=$(echo "$OUTPUT" | grep "All files" | awk '{print $3}' | tr -d '%' || echo "0")
+        FUNCTIONS=$(echo "$OUTPUT" | grep "All files" | awk '{print $4}' | tr -d '%' || echo "0")
+        LINES=$(echo "$OUTPUT" | grep "All files" | awk '{print $5}' | tr -d '%' || echo "0")
+        
+        # Save metrics as step outputs
+        echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+        echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+        echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+        echo "lines=$LINES" >> $GITHUB_OUTPUT
+        
+        # Check for test failures
+        if echo "$OUTPUT" | grep -q "FAIL"; then
+          echo "::error::Tests failed. See output above for details."
+          exit 1
+        fi
       env:
         NODE_ENV: test
         NEXT_PUBLIC_MAPBOX_TOKEN: dummy_token_for_tests
@@ -38,49 +64,39 @@ jobs:
         DEBUG: 'true'
       
     - name: Upload coverage reports to Codecov
+      if: always()
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         
     - name: Check coverage thresholds
+      if: success()
       run: |
-        # Run tests and capture full output
-        COVERAGE_OUTPUT=$(npm run test -- --coverage --reporter verbose)
-        echo "Full test output:"
-        echo "$COVERAGE_OUTPUT"
+        echo "Coverage metrics from test run:"
+        echo "Statements: ${{ steps.test-coverage.outputs.statements }}%"
+        echo "Branches: ${{ steps.test-coverage.outputs.branches }}%"
+        echo "Functions: ${{ steps.test-coverage.outputs.functions }}%"
+        echo "Lines: ${{ steps.test-coverage.outputs.lines }}%"
         
-        # Extract coverage percentages
-        STATEMENTS=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $2}' | tr -d '%')
-        BRANCHES=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $3}' | tr -d '%')
-        FUNCTIONS=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $4}' | tr -d '%')
-        LINES=$(echo "$COVERAGE_OUTPUT" | grep "All files" | awk '{print $5}' | tr -d '%')
-        
-        echo "Coverage metrics:"
-        echo "Statements: $STATEMENTS%"
-        echo "Branches: $BRANCHES%"
-        echo "Functions: $FUNCTIONS%"
-        echo "Lines: $LINES%"
-        
-        # Check against thresholds
         THRESHOLD=80
         
-        if (( $(echo "$STATEMENTS < $THRESHOLD" | bc -l) )); then
-          echo "Statement coverage ($STATEMENTS%) is below threshold ($THRESHOLD%)"
+        if (( $(echo "${{ steps.test-coverage.outputs.statements }} < $THRESHOLD" | bc -l) )); then
+          echo "::error::Statement coverage (${{ steps.test-coverage.outputs.statements }}%) is below threshold ($THRESHOLD%)"
           exit 1
         fi
         
-        if (( $(echo "$BRANCHES < $THRESHOLD" | bc -l) )); then
-          echo "Branch coverage ($BRANCHES%) is below threshold ($THRESHOLD%)"
+        if (( $(echo "${{ steps.test-coverage.outputs.branches }} < $THRESHOLD" | bc -l) )); then
+          echo "::error::Branch coverage (${{ steps.test-coverage.outputs.branches }}%) is below threshold ($THRESHOLD%)"
           exit 1
         fi
         
-        if (( $(echo "$FUNCTIONS < $THRESHOLD" | bc -l) )); then
-          echo "Function coverage ($FUNCTIONS%) is below threshold ($THRESHOLD%)"
+        if (( $(echo "${{ steps.test-coverage.outputs.functions }} < $THRESHOLD" | bc -l) )); then
+          echo "::error::Function coverage (${{ steps.test-coverage.outputs.functions }}%) is below threshold ($THRESHOLD%)"
           exit 1
         fi
         
-        if (( $(echo "$LINES < $THRESHOLD" | bc -l) )); then
-          echo "Line coverage ($LINES%) is below threshold ($THRESHOLD%)"
+        if (( $(echo "${{ steps.test-coverage.outputs.lines }} < $THRESHOLD" | bc -l) )); then
+          echo "::error::Line coverage (${{ steps.test-coverage.outputs.lines }}%) is below threshold ($THRESHOLD%)"
           exit 1
         fi
         
@@ -91,4 +107,4 @@ jobs:
         name: test-results
         path: |
           coverage/
-          test-results/
+          test-output.txt
