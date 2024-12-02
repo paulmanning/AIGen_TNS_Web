@@ -21,6 +21,8 @@ jobs:
         
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -y bc
         npm ci
         npm install -g vitest
       
@@ -34,17 +36,13 @@ jobs:
       run: |
         # Run tests and save output
         echo "Running tests with coverage..."
-        OUTPUT=$(npm run test -- --coverage --environment jsdom --reporter verbose 2>&1)
-        echo "$OUTPUT"
-        
-        # Save output to a file for processing
-        echo "$OUTPUT" > test-output.txt
+        npm run test -- --coverage --environment jsdom --reporter verbose | tee test-output.txt
         
         # Extract coverage metrics
-        STATEMENTS=$(echo "$OUTPUT" | grep "All files" | awk '{print $2}' | tr -d '%' || echo "0")
-        BRANCHES=$(echo "$OUTPUT" | grep "All files" | awk '{print $3}' | tr -d '%' || echo "0")
-        FUNCTIONS=$(echo "$OUTPUT" | grep "All files" | awk '{print $4}' | tr -d '%' || echo "0")
-        LINES=$(echo "$OUTPUT" | grep "All files" | awk '{print $5}' | tr -d '%' || echo "0")
+        STATEMENTS=$(grep "All files" test-output.txt | awk '{print $2}' | tr -d '%' || echo "0")
+        BRANCHES=$(grep "All files" test-output.txt | awk '{print $3}' | tr -d '%' || echo "0")
+        FUNCTIONS=$(grep "All files" test-output.txt | awk '{print $4}' | tr -d '%' || echo "0")
+        LINES=$(grep "All files" test-output.txt | awk '{print $5}' | tr -d '%' || echo "0")
         
         # Save metrics as step outputs
         echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
@@ -53,7 +51,7 @@ jobs:
         echo "lines=$LINES" >> $GITHUB_OUTPUT
         
         # Check for test failures
-        if echo "$OUTPUT" | grep -q "FAIL"; then
+        if grep -q "FAIL" test-output.txt; then
           echo "::error::Tests failed. See output above for details."
           exit 1
         fi
@@ -80,6 +78,7 @@ jobs:
         
         THRESHOLD=80
         
+        # Use bc for floating point comparison
         if (( $(echo "${{ steps.test-coverage.outputs.statements }} < $THRESHOLD" | bc -l) )); then
           echo "::error::Statement coverage (${{ steps.test-coverage.outputs.statements }}%) is below threshold ($THRESHOLD%)"
           exit 1
