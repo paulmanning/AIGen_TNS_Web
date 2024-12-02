@@ -64,7 +64,14 @@ vi.mock('@/data/ships', () => ({
 
 // Mock React components
 vi.mock('@/components/map/MapComponent', () => ({
-  MapComponent: vi.fn(() => React.createElement('div', { 'data-testid': 'map-component' }, 'Map Component')),
+  MapComponent: vi.fn(({ onMapChange }: any) => {
+    React.useEffect(() => {
+      if (onMapChange) {
+        onMapChange([-155.5, 19.5], 5)
+      }
+    }, [onMapChange])
+    return React.createElement('div', { 'data-testid': 'map-component' }, 'Map Component')
+  }),
 }))
 
 vi.mock('@/components/ship-picker/ShipPicker', () => ({
@@ -140,6 +147,21 @@ describe('Simulation Creation Flow', () => {
       unobserve: vi.fn(),
       disconnect: vi.fn(),
     }))
+
+    // Mock window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
   })
 
   afterEach(() => {
