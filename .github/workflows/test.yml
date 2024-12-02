@@ -48,17 +48,24 @@ jobs:
         cat test-output.txt
         echo "=== End Coverage Report ==="
         
-        # Extract the "All files" line and parse it
-        ALL_FILES_LINE=$(grep "All files" test-output.txt)
-        echo "All files line: $ALL_FILES_LINE"
+        # Extract metrics using grep and awk
+        COVERAGE_LINE=$(grep "All files" test-output.txt)
+        echo "Coverage line: $COVERAGE_LINE"
         
-        # Parse metrics using cut (assuming space-separated values)
-        STATEMENTS=$(echo "$ALL_FILES_LINE" | tr -s ' ' | cut -d' ' -f3 | tr -d '%')
-        BRANCHES=$(echo "$ALL_FILES_LINE" | tr -s ' ' | cut -d' ' -f5 | tr -d '%')
-        FUNCTIONS=$(echo "$ALL_FILES_LINE" | tr -s ' ' | cut -d' ' -f7 | tr -d '%')
-        LINES=$(echo "$ALL_FILES_LINE" | tr -s ' ' | cut -d' ' -f9 | tr -d '%')
+        # Parse metrics using awk
+        STATEMENTS=$(echo "$COVERAGE_LINE" | awk '{print $3}')
+        BRANCHES=$(echo "$COVERAGE_LINE" | awk '{print $5}')
+        FUNCTIONS=$(echo "$COVERAGE_LINE" | awk '{print $7}')
+        LINES=$(echo "$COVERAGE_LINE" | awk '{print $9}')
         
-        # Output metrics
+        # Remove % signs
+        STATEMENTS=$(echo "$STATEMENTS" | tr -d '%')
+        BRANCHES=$(echo "$BRANCHES" | tr -d '%')
+        FUNCTIONS=$(echo "$FUNCTIONS" | tr -d '%')
+        LINES=$(echo "$LINES" | tr -d '%')
+        
+        # Debug output
+        echo "Extracted metrics:"
         echo "Statements: $STATEMENTS%"
         echo "Branches: $BRANCHES%"
         echo "Functions: $FUNCTIONS%"
