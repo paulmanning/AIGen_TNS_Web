@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DroppableMapOverlay } from '../DroppableMapOverlay'
-import { DndProvider } from 'react-dnd'
+import { DndProvider, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import type { ShipData } from '@/data/ships'
 import mapboxgl from 'mapbox-gl'
@@ -9,55 +9,31 @@ import mapboxgl from 'mapbox-gl'
 // Mock mapboxgl
 vi.mock('mapbox-gl', () => ({
   default: {
-    Map: vi.fn()
+    Map: vi.fn(),
+    LngLat: vi.fn()
   }
 }))
 
 // Mock react-dnd hooks
-vi.mock('react-dnd', async () => {
-  const actual = await vi.importActual('react-dnd')
-  return {
-    ...actual,
-    useDrop: (options: any) => {
-      const dropRef = vi.fn()
-      const dropHandler = (item: any, monitor: any) => {
-        const offset = monitor.getClientOffset()
-        if (!offset) return
-
-        // Call the onShipDrop prop with the ship data and coordinates
-        const mockMap = {
-          getContainer: () => ({
-            getBoundingClientRect: () => ({
-              left: 0,
-              top: 0,
-              width: 800,
-              height: 600
-            })
-          }),
-          unproject: (coords: [number, number]) => ({
-            lng: -155.5,
-            lat: 19.5
-          })
-        }
-
-        const x = offset.x
-        const y = offset.y
-        const point = mockMap.unproject([x, y])
-        
-        // Call the actual drop handler from the component
-        options.drop(item, { x: point.lng, y: point.lat })
-      }
-
-      return [{
-        isOver: false,
-        canDrop: true,
-        drop: dropHandler
-      }, dropRef]
-    }
-  }
-})
+vi.mock('react-dnd', () => ({
+  DndProvider: ({ children }: { children: React.ReactNode }) => children,
+  useDrop: vi.fn()
+}))
 
 describe('DroppableMapOverlay', () => {
+  const mockShip: ShipData = {
+    id: 'test-ship',
+    name: 'Test Ship',
+    type: 'carrier',
+    length: 100,
+    beam: 20,
+    draft: 10,
+    displacement: 5000,
+    maxSpeed: 30,
+    turnRadius: 500,
+    description: 'Test ship description'
+  }
+
   const mockMap = {
     getContainer: vi.fn(() => ({
       getBoundingClientRect: () => ({
@@ -68,103 +44,137 @@ describe('DroppableMapOverlay', () => {
       })
     })),
     unproject: vi.fn((coords) => ({
-      lng: -155.5,
-      lat: 19.5
+      lat: 19.5,
+      lng: -155.5
     }))
-  }
+  } as unknown as mapboxgl.Map
 
   const defaultProps = {
     onShipDrop: vi.fn(),
-    map: mockMap as unknown as mapboxgl.Map
-  }
-
-  const testShip: ShipData = {
-    id: 'test-ship',
-    name: 'Test Ship',
-    callsign: 'TST-01',
-    type: 'SURFACE_WARSHIP',
-    nationality: 'US',
-    maxSpeed: 30,
-    maxTurnRate: 10
+    map: mockMap
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+
+    // Setup default useDrop mock
+    const mockRef = vi.fn()
+    ;(useDrop as jest.Mock).mockReturnValue([{ isOver: false }, mockRef])
   })
 
-  it('renders the overlay', () => {
-    const { container } = render(
-      <DndProvider backend={HTML5Backend}>
-        <DroppableMapOverlay {...defaultProps} />
-      </DndProvider>
-    )
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('renders the overlay container', () => {
+    const { container } = render(<DroppableMapOverlay {...defaultProps} />)
     const overlay = container.querySelector('#map-overlay')
     expect(overlay).toBeInTheDocument()
+    expect(overlay).toHaveClass('absolute', 'inset-0', 'z-10')
   })
 
-  it('handles ship drop with coordinates', () => {
-    const { container } = render(
-      <DndProvider backend={HTML5Backend}>
-        <DroppableMapOverlay {...defaultProps} />
-      </DndProvider>
+  it('handles ship drop with valid coordinates', async () => {
+    // Get the drop handler from useDrop config
+    let dropHandler: Function | undefined
+    ;(useDrop as jest.Mock).mockImplementation((options) => {
+      dropHandler = options().drop
+      return [{ isOver: false }, vi.fn()]
+    })
+
+    render(<DroppableMapOverlay {...defaultProps} />)
+
+    // Simulate drop with valid coordinates
+    await act(async () => {
+      dropHandler?.(mockShip, {
+        getClientOffset: () => ({ x: 100, y: 100 })
+      })
+    })
+
+    // Check if onShipDrop was called with correct coordinates
+    expect(defaultProps.onShipDrop).toHaveBeenCalledWith(
+      mockShip,
+      { x: -155.5, y: 19.5 }
     )
 
-    const overlay = container.querySelector('#map-overlay')!
-    const dropCoords = { x: 100, y: 100 }
+    // Check if drop message is displayed
+    const message = screen.getByText(`Dropped ${mockShip.name} at 19.5000°N, -155.5000°E`)
+    expect(message).toBeInTheDocument()
 
-    // Mock the DnD monitor
-    const mockMonitor = {
-      getClientOffset: () => ({ x: dropCoords.x, y: dropCoords.y }),
-      getSourceClientOffset: () => ({ x: dropCoords.x, y: dropCoords.y })
-    }
+    // Advance timers to clear message
+    await act(async () => {
+      vi.advanceTimersByTime(3000)
+    })
 
-    // Get the drop handler from the useDrop hook
-    const dropHandler = (overlay as any).__dropTarget?.props?.accept?.drop
-    if (dropHandler) {
-      dropHandler(testShip, mockMonitor)
-
-      // Verify map coordinate conversion was attempted
-      expect(mockMap.unproject).toHaveBeenCalledWith([dropCoords.x, dropCoords.y])
-      expect(defaultProps.onShipDrop).toHaveBeenCalledWith(
-        testShip,
-        { x: -155.5, y: 19.5 }
-      )
-    }
+    expect(screen.queryByText(`Dropped ${mockShip.name} at 19.5000°N, -155.5000°E`)).not.toBeInTheDocument()
   })
 
-  it('handles null map gracefully', () => {
-    const { container } = render(
-      <DndProvider backend={HTML5Backend}>
-        <DroppableMapOverlay {...defaultProps} map={null} />
-      </DndProvider>
-    )
+  it('handles ship drop when map is not available', async () => {
+    // Get the drop handler from useDrop config
+    let dropHandler: Function | undefined
+    ;(useDrop as jest.Mock).mockImplementation((options) => {
+      dropHandler = options().drop
+      return [{ isOver: false }, vi.fn()]
+    })
 
-    const overlay = container.querySelector('#map-overlay')!
-    const dropEvent = new Event('drop', { bubbles: true })
-    fireEvent(overlay, dropEvent)
+    render(<DroppableMapOverlay {...defaultProps} map={null} />)
 
+    // Simulate drop with valid coordinates
+    await act(async () => {
+      dropHandler?.(mockShip, {
+        getClientOffset: () => ({ x: 100, y: 100 })
+      })
+    })
+
+    // Check that onShipDrop was not called
     expect(defaultProps.onShipDrop).not.toHaveBeenCalled()
   })
 
-  it('handles missing drop coordinates gracefully', () => {
-    const { container } = render(
-      <DndProvider backend={HTML5Backend}>
-        <DroppableMapOverlay {...defaultProps} />
-      </DndProvider>
-    )
+  it('handles ship drop without client offset', async () => {
+    // Get the drop handler from useDrop config
+    let dropHandler: Function | undefined
+    ;(useDrop as jest.Mock).mockImplementation((options) => {
+      dropHandler = options().drop
+      return [{ isOver: false }, vi.fn()]
+    })
 
-    const overlay = container.querySelector('#map-overlay')!
-    const mockMonitor = {
-      getClientOffset: () => null,
-      getSourceClientOffset: () => null
-    }
+    render(<DroppableMapOverlay {...defaultProps} />)
 
-    // Get the drop handler from the useDrop hook
-    const dropHandler = (overlay as any).__dropTarget?.props?.accept?.drop
-    if (dropHandler) {
-      dropHandler(testShip, mockMonitor)
-    }
+    // Simulate drop without client offset
+    await act(async () => {
+      dropHandler?.(mockShip, {
+        getClientOffset: () => null
+      })
+    })
 
+    // Check that onShipDrop was not called
     expect(defaultProps.onShipDrop).not.toHaveBeenCalled()
+  })
+
+  it('positions drop message correctly', async () => {
+    // Get the drop handler from useDrop config
+    let dropHandler: Function | undefined
+    ;(useDrop as jest.Mock).mockImplementation((options) => {
+      dropHandler = options().drop
+      return [{ isOver: false }, vi.fn()]
+    })
+
+    const { container } = render(<DroppableMapOverlay {...defaultProps} />)
+
+    // Simulate drop with valid coordinates
+    await act(async () => {
+      dropHandler?.(mockShip, {
+        getClientOffset: () => ({ x: 100, y: 100 })
+      })
+    })
+
+    // Check message positioning
+    const message = container.querySelector('.fixed')
+    expect(message).toHaveStyle({
+      left: '100px',
+      top: '100px',
+      transform: 'translate(-50%, -100%)',
+      marginTop: '-8px'
+    })
   })
 }) 

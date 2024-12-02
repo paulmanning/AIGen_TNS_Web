@@ -1,67 +1,73 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { SimulationController } from '../SimulationController'
-import { VesselType } from '@/types/simulation'
+import { SimulationShip } from '@/types/simulation'
 
 describe('SimulationController', () => {
   const defaultProps = {
-    ships: [],
-    currentTime: 300, // 5 minutes
+    currentTime: 300,
+    duration: 7200,
     isPlaying: false,
-    onPlayPause: jest.fn(),
-    onTimeChange: jest.fn(),
-    onShipSelect: jest.fn(),
+    simulationSpeed: 1,
+    startTime: '2024-03-15T10:00',
+    onTimeChange: vi.fn(),
+    onPlayPause: vi.fn(),
+    onSpeedChange: vi.fn(),
+    onRestart: vi.fn(),
+    ships: [],
+    selectedShipId: undefined,
+    onShipSelect: vi.fn(),
+    isSetupMode: false,
+    onShipUpdate: vi.fn()
+  }
+
+  const testShip: SimulationShip = {
+    id: 'test-ship',
+    name: 'Test Ship',
+    callsign: 'TST-01',
+    type: 'SURFACE_WARSHIP',
+    course: 0,
+    speed: 20,
+    position: [0, 0],
+    waypoints: []
+  }
+
+  const propsWithShip = {
+    ...defaultProps,
+    ships: [testShip]
   }
 
   it('displays formatted time', () => {
     render(<SimulationController {...defaultProps} />)
-    expect(screen.getByText('05:00')).toBeInTheDocument()
+    expect(screen.getByText('Mar 15, 2024, 10:05:00')).toBeInTheDocument()
   })
 
   it('handles play/pause button click', () => {
     render(<SimulationController {...defaultProps} />)
-    fireEvent.click(screen.getByRole('button', { name: /play|pause/i }))
+    const playButton = screen.getByTitle('Play')
+    fireEvent.click(playButton)
     expect(defaultProps.onPlayPause).toHaveBeenCalled()
   })
 
-  it('handles time change with skip buttons', () => {
+  it('handles speed change', () => {
     render(<SimulationController {...defaultProps} />)
-    
-    // Skip backward
-    fireEvent.click(screen.getByRole('button', { name: /skip back/i }))
-    expect(defaultProps.onTimeChange).toHaveBeenCalledWith(240) // 300 - 60
-
-    // Skip forward
-    fireEvent.click(screen.getByRole('button', { name: /skip forward/i }))
-    expect(defaultProps.onTimeChange).toHaveBeenCalledWith(360) // 300 + 60
+    const speedSelect = screen.getByTitle('Simulation Speed')
+    fireEvent.change(speedSelect, { target: { value: '2' } })
+    expect(defaultProps.onSpeedChange).toHaveBeenCalledWith(2)
   })
 
-  // Add test for when ships are present
   it('renders ship information when ships are provided', () => {
-    const propsWithShip = {
-      ...defaultProps,
-      ships: [{
-        id: 'test-ship',
-        name: 'Test Ship',
-        hullNumber: 'TST-01',
-        type: VesselType.SURFACE_WARSHIP,
-        nationality: 'TEST',
-        position: { lat: 0, lng: 0 },
-        characteristics: {
-          maxSpeed: 20,
-          minSpeed: 0,
-          maxDepth: 0,
-          minDepth: 0,
-          turnRate: 2,
-          accelerationRate: 1,
-          depthChangeRate: 0,
-          propulsion: []
-        },
-        acousticSignatures: []
-      }]
-    }
-
     render(<SimulationController {...propsWithShip} />)
     expect(screen.getByText('Test Ship')).toBeInTheDocument()
-    expect(screen.getByText('20 kts / 0m')).toBeInTheDocument()
+    const speedElement = screen.getByText((content, element) => {
+      const hasClass = (className: string) => element?.classList?.contains(className)
+      return hasClass('text-xs') && 
+             hasClass('whitespace-nowrap') && 
+             hasClass('text-navy-light') && 
+             element?.textContent?.includes('0°') && 
+             element?.textContent?.includes('20.0') && 
+             element?.textContent?.includes('kts')
+    })
+    expect(speedElement).toBeInTheDocument()
   })
 }) 
