@@ -7,6 +7,11 @@ import { DroppableMapOverlay } from './DroppableMapOverlay'
 import { ShipMarker } from './ShipMarker'
 import type { ShipData } from '@/data/ships'
 import type { SimulationShip } from '@/types/simulation'
+import { getShipPositionAtTime, generateShipTrail } from '@/utils/ship-position'
+import { Root, createRoot } from 'react-dom/client'
+
+// Store React roots in a WeakMap to avoid TypeScript errors
+const markerRoots = new WeakMap<HTMLElement, Root>()
 
 // Set Mapbox token
 if (!mapboxgl.accessToken) {
@@ -28,16 +33,24 @@ interface MapComponentProps {
   selectedShipId?: string
   isSetupMode: boolean
   isPlaying: boolean
+  currentTime: number
 }
 
-export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], selectedShipId, isSetupMode, isPlaying }: MapComponentProps) {
+export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], selectedShipId, isSetupMode, isPlaying, currentTime }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({})
+  const shipTrails = useRef<{ [key: string]: string }>({})
+  const markerElements = useRef<{ [key: string]: HTMLDivElement }>({})
   const isUserInteraction = useRef(false)
   const lastCenter = useRef(center)
   const lastZoom = useRef(zoom)
   const resizeObserver = useRef<ResizeObserver | null>(null)
+
+  // Debug log for selection changes
+  useEffect(() => {
+    console.log('Selection changed:', selectedShipId)
+  }, [selectedShipId])
 
   // Memoize the change handler to prevent unnecessary updates
   const handleMapChange = useCallback(() => {
@@ -134,99 +147,155 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
     })
   }, [center, zoom, ships])
 
-  // Update markers when ships change
+  // Update ship markers
   useEffect(() => {
-    const currentMap = map.current
-    if (!currentMap) return
+    const mapInstance = map.current
+    if (!mapInstance) return
+
+    // Update all markers to reflect current selection state
+    ships.forEach(ship => {
+      // Get ship position based on mode
+      const position = isSetupMode 
+        ? ship.position 
+        : getShipPositionAtTime(ship, currentTime)
+
+      // Create or update marker element
+      let markerElement = markerElements.current[ship.id]
+      if (!markerElement) {
+        markerElement = document.createElement('div')
+        markerElements.current[ship.id] = markerElement
+      }
+      
+      // Create or update marker
+      let marker = markers.current[ship.id]
+      const isThisShipSelected = ship.id === selectedShipId
+      console.log('Updating marker:', ship.id, 'selected:', isThisShipSelected)
+
+      if (!marker) {
+        // Create React root if it doesn't exist
+        let root = markerRoots.get(markerElement)
+        if (!root) {
+          root = createRoot(markerElement)
+          markerRoots.set(markerElement, root)
+        }
+        root.render(<ShipMarker ship={ship} isSelected={isThisShipSelected} />)
+
+        // Create new marker
+        marker = new mapboxgl.Marker({
+          element: markerElement,
+          anchor: 'center',
+          rotationAlignment: 'map'
+        })
+        markers.current[ship.id] = marker
+        marker.setLngLat([position.lng, position.lat]).addTo(mapInstance)
+      } else {
+        // Update existing marker
+        const root = markerRoots.get(markerElement)
+        if (root) {
+          // Force re-render with current selection state
+          root.render(<ShipMarker ship={ship} isSelected={isThisShipSelected} />)
+        }
+        marker.setLngLat([position.lng, position.lat])
+      }
+    })
 
     // Remove markers for ships that no longer exist
-    Object.keys(markers.current).forEach(id => {
-      if (!ships.find(ship => ship.id === id)) {
-        markers.current[id].remove()
-        delete markers.current[id]
-      }
-    })
-
-    // Update or create markers for each ship
-    ships.forEach(ship => {
-      try {
-        let marker = markers.current[ship.id]
-        
-        if (!marker) {
-          // Create new marker if it doesn't exist
-          const markerElement = document.createElement('div')
-          markerElement.className = 'ship-marker-container'
-          
-          marker = new mapboxgl.Marker({
-            element: markerElement,
-            anchor: 'center',
-            rotationAlignment: 'map'
-          })
-          markers.current[ship.id] = marker
-
-          // Create React root for new marker
-          const { createRoot } = require('react-dom/client')
-          const root = createRoot(markerElement)
-          root.render(
-            <ShipMarker 
-              ship={ship} 
-              heading={0} 
-              affiliation="unknown"
-              course={ship.course}
-              speed={ship.speed}
-            />
-          )
-        } else {
-          // Update existing marker's React component
-          const markerElement = marker.getElement()
-          const root = markerElement._reactRoot
+    Object.keys(markers.current).forEach(shipId => {
+      if (!ships.find(s => s.id === shipId)) {
+        const markerElement = markerElements.current[shipId]
+        if (markerElement) {
+          const root = markerRoots.get(markerElement)
           if (root) {
-            root.render(
-              <ShipMarker 
-                ship={ship} 
-                heading={0} 
-                affiliation="unknown"
-                course={ship.course}
-                speed={ship.speed}
-              />
-            )
+            root.unmount()
+            markerRoots.delete(markerElement)
           }
         }
-
-        // Update marker position
-        marker.setLngLat([ship.position.lng, ship.position.lat])
-        marker.addTo(currentMap)
-        
-      } catch (error) {
-        console.error('Error handling marker for ship:', ship.id, error)
+        markers.current[shipId].remove()
+        delete markers.current[shipId]
+        delete markerElements.current[shipId]
       }
     })
+  }, [ships, currentTime, isSetupMode, selectedShipId])
 
-    return () => {
-      // Clean up markers on unmount
-      Object.values(markers.current).forEach(marker => marker.remove())
-      markers.current = {}
-    }
-  }, [ships])
-
-  // Add CSS for ship markers
+  // Update trails only in run mode
   useEffect(() => {
-    const style = document.createElement('style')
-    style.textContent = `
-      .ship-marker-container {
-        width: 32px;
-        height: 32px;
+    const mapInstance = map.current
+    if (!mapInstance || isSetupMode) return
+
+    ships.forEach(ship => {
+      const trailId = `trail-${ship.id}`
+      const trail = generateShipTrail(ship, currentTime)
+      
+      if (mapInstance.getSource(trailId)) {
+        // Update existing trail
+        const source = mapInstance.getSource(trailId) as mapboxgl.GeoJSONSource
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: trail
+          }
+        })
+      } else {
+        // Create new trail
+        mapInstance.addSource(trailId, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: trail
+            }
+          }
+        })
+
+        mapInstance.addLayer({
+          id: trailId,
+          type: 'line',
+          source: trailId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#ddd',
+            'line-width': 1,
+            'line-opacity': 0.7
+          }
+        })
+
+        shipTrails.current[ship.id] = trailId
       }
-      .ship-marker {
-        width: 100%;
-        height: 100%;
-      }
-    `
-    document.head.appendChild(style)
+    })
+  }, [ships, currentTime, isSetupMode])
+
+  // Clean up trails when component unmounts or when entering setup mode
+  useEffect(() => {
+    const mapInstance = map.current
+    if (!mapInstance) return
+
     return () => {
-      document.head.removeChild(style)
+      // Store the map instance in a closure to ensure it's available during cleanup
+      const mapForCleanup = map.current
+      if (!mapForCleanup) return
+
+      Object.values(shipTrails.current).forEach(trailId => {
+        try {
+          if (mapForCleanup.getLayer(trailId)) {
+            mapForCleanup.removeLayer(trailId)
+          }
+          if (mapForCleanup.getSource(trailId)) {
+            mapForCleanup.removeSource(trailId)
+          }
+        } catch (error) {
+          console.warn('Error cleaning up map layer/source:', error)
+        }
+      })
+      shipTrails.current = {}
     }
-  }, [])
+  }, [isSetupMode])
 
   if (!mapboxgl.accessToken) {
     return (

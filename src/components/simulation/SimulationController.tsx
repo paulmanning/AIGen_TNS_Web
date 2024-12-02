@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { SimulationShip, VesselType } from '@/types/simulation'
 import { BiPlay, BiPause, BiReset } from 'react-icons/bi'
 import { getShipIcon } from '@/utils/ship-icons'
@@ -62,10 +62,59 @@ export function SimulationController({
   simulationSpeed,
   onSpeedChange,
 }: SimulationControllerProps) {
+  const durationInSeconds = duration * 60
+  const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null)
+  const [lastRealTime, setLastRealTime] = useState<number>(Date.now())
+
+  // Handle animation frame updates for playback
+  useEffect(() => {
+    if (!isPlaying) {
+      setLastUpdateTime(null)
+      setLastRealTime(Date.now())
+      return
+    }
+
+    let animationFrameId: number
+
+    const updateFrame = (timestamp: number) => {
+      const now = Date.now()
+      if (lastUpdateTime === null) {
+        setLastUpdateTime(timestamp)
+        setLastRealTime(now)
+        animationFrameId = requestAnimationFrame(updateFrame)
+        return
+      }
+
+      // Calculate real elapsed time and apply speed multiplier
+      const realElapsed = (now - lastRealTime) / 1000 // Convert to seconds
+      const simulatedElapsed = realElapsed * simulationSpeed
+
+      const newTime = Math.min(currentTime + simulatedElapsed, durationInSeconds)
+      
+      if (newTime >= durationInSeconds) {
+        // Stop playback at the end
+        onPlayPause()
+        onTimeChange(durationInSeconds)
+      } else {
+        onTimeChange(newTime)
+        setLastUpdateTime(timestamp)
+        setLastRealTime(now)
+        animationFrameId = requestAnimationFrame(updateFrame)
+      }
+    }
+
+    animationFrameId = requestAnimationFrame(updateFrame)
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+    }
+  }, [isPlaying, currentTime, simulationSpeed, durationInSeconds, lastUpdateTime, lastRealTime, onTimeChange, onPlayPause])
+
   // Generate tick marks every 30 minutes
   const timeMarks = useMemo(() => {
     const marks = []
-    const durationInSeconds = duration * 60  // Convert minutes to seconds
     const interval = 30 * 60 // 30 minutes in seconds
     for (let time = 0; time <= durationInSeconds; time += interval) {
       marks.push({
@@ -74,10 +123,16 @@ export function SimulationController({
       })
     }
     return marks
-  }, [duration])
+  }, [durationInSeconds])
 
-  // Convert duration to seconds for the slider
-  const durationInSeconds = duration * 60
+  // Handle restart with pause
+  const handleRestart = () => {
+    if (isPlaying) {
+      onPlayPause() // Pause playback
+    }
+    onRestart() // Reset to initial state
+    onTimeChange(0) // Reset time to 0
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -113,9 +168,9 @@ export function SimulationController({
         ))}
       </div>
 
-      {/* Control Bar - Only shown in run mode */}
+      {/* Playback Controls - Only shown in run mode */}
       {!isSetupMode && (
-        <div className="flex-none p-2 bg-navy-dark space-y-4">
+        <>
           {/* Time Slider with Tick Marks */}
           <div className="space-y-4 px-4">
             {/* Time Marks */}
@@ -165,16 +220,16 @@ export function SimulationController({
                 max={durationInSeconds}
                 value={currentTime}
                 onChange={(e) => onTimeChange(Number(e.target.value))}
-                className="w-full focus:outline-none relative z-10"
+                className="w-full focus:outline-none relative z-10 navy-slider"
               />
             </div>
           </div>
 
           {/* Controls and Current Time */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-2">
               <button
-                onClick={onRestart}
+                onClick={handleRestart}
                 className="navy-button"
                 title="Restart"
               >
@@ -187,27 +242,25 @@ export function SimulationController({
               >
                 {isPlaying ? <BiPause size={16} /> : <BiPlay size={16} />}
               </button>
-              <div className="relative">
-                <select
-                  value={simulationSpeed}
-                  onChange={(e) => onSpeedChange(Number(e.target.value))}
-                  className="min-w-[60px] px-2 py-1 rounded bg-navy-dark text-navy-lightest border border-white focus:border-accent-gold focus:outline-none appearance-none pr-6"
-                  title="Simulation Speed"
-                >
-                  <option value="1">1×</option>
-                  <option value="2">2×</option>
-                  <option value="5">5×</option>
-                  <option value="10">10×</option>
-                  <option value="20">20×</option>
-                  <option value="50">50×</option>
-                </select>
-              </div>
+              <select
+                value={simulationSpeed}
+                onChange={(e) => onSpeedChange(Number(e.target.value))}
+                className="navy-select"
+                title="Simulation Speed"
+              >
+                <option value="1">1×</option>
+                <option value="2">2×</option>
+                <option value="5">5×</option>
+                <option value="10">10×</option>
+                <option value="20">20×</option>
+                <option value="50">50×</option>
+              </select>
             </div>
-            <div className="text-navy-lightest font-mono text-sm">
+            <div className="text-navy-lightest">
               {formatDateTime(startTime, currentTime)}
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )

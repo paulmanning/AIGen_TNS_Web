@@ -150,4 +150,27 @@
   .navy-divider {
     @apply border-t border-navy-medium my-4;
   }
+}
+
+/* Ship Marker Styles */
+.ship-marker {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.ship-marker path {
+  transition: stroke 0.2s ease-in-out, fill 0.2s ease-in-out;
+}
+
+.ship-marker text {
+  transition: fill 0.2s ease-in-out;
+}
+
+.ship-marker[data-selected="true"] path {
+  stroke: #FFD700;
+  fill: #FFD700;
+}
+
+.ship-marker[data-selected="true"] text {
+  fill: #FFD700;
 } 

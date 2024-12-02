@@ -151,6 +151,7 @@ export function NewSimulationDialog({ isOpen, onClose, onCreate }: NewSimulation
                   ships={[]}
                   isSetupMode={true}
                   isPlaying={false}
+                  currentTime={0}
                 />
               </div>
             </div>

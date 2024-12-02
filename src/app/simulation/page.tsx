@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import { DndProvider } from 'react-dnd'
@@ -15,6 +15,7 @@ import { SimulationController } from '@/components/simulation/SimulationControll
 import type { ShipData } from '@/data/ships'
 import { defaultShips } from '@/data/ships'
 import { ShipDetails } from '@/components/ship-details/ShipDetails'
+import { getShipPositionAtTime, resetInitialPositions } from '@/utils/ship-position'
 
 export default function SimulationPage() {
   const dispatch = useDispatch()
@@ -83,6 +84,8 @@ export default function SimulationPage() {
     if (!simulation) return
     setIsSetupMode(false)
     setIsPlaying(false) // Start in paused state
+    setCurrentTime(0)   // Reset time to start
+    resetInitialPositions()  // Reset positions when starting simulation
     localStorage.setItem('currentSimulation', JSON.stringify(simulation))
     console.log('Saved simulation:', simulation)
   }
@@ -91,6 +94,7 @@ export default function SimulationPage() {
     setIsSetupMode(true)
     setIsPlaying(false)
     setCurrentTime(0)
+    resetInitialPositions()  // Reset positions when returning to setup
   }
 
   const handleShipSelect = (ship: ShipData | SimulationShip) => {
@@ -118,6 +122,7 @@ export default function SimulationPage() {
     
     const updatedSimulation: SimulationData = {
       ...simulation,
+      ships: [...(simulation.ships || [])],
       location: { 
         center: [
           Number(center[0].toFixed(4)),
@@ -213,6 +218,18 @@ export default function SimulationPage() {
 
   const handleTimeChange = (newTime: number) => {
     setCurrentTime(newTime)
+    
+    // Update ship positions based on elapsed time
+    if (simulation?.ships) {
+      const updatedShips = simulation.ships.map(ship => {
+        const newPosition = getShipPositionAtTime(ship, newTime)
+        return {
+          ...ship,
+          position: newPosition
+        }
+      })
+      handleShipUpdate(updatedShips)
+    }
   }
 
   const handleShipUpdate = useCallback((updatedShips: SimulationShip[]) => {
@@ -229,6 +246,7 @@ export default function SimulationPage() {
   const handleRestart = useCallback(() => {
     setCurrentTime(0)
     setIsPlaying(false)
+    resetInitialPositions()  // Reset positions on restart
     
     // Reset ships to their initial positions
     if (simulation?.ships) {
@@ -318,6 +336,7 @@ export default function SimulationPage() {
                 selectedShipId={selectedShip?.id}
                 isSetupMode={isSetupMode}
                 isPlaying={isPlaying}
+                currentTime={currentTime}
               />
               {isSetupMode && <CustomDragLayer />}
             </div>
@@ -328,8 +347,8 @@ export default function SimulationPage() {
                 ships={simulation.ships || []}
                 currentTime={currentTime}
                 isPlaying={isPlaying}
-                onPlayPause={() => setIsPlaying(!isPlaying)}
-                onTimeChange={setCurrentTime}
+                onPlayPause={handlePlayPause}
+                onTimeChange={handleTimeChange}
                 onShipSelect={handleShipSelect}
                 selectedShipId={selectedShip?.id}
                 isSetupMode={isSetupMode}
@@ -338,7 +357,7 @@ export default function SimulationPage() {
                 onShipUpdate={handleShipUpdate}
                 onRestart={handleRestart}
                 simulationSpeed={simulationSpeed}
-                onSpeedChange={setSimulationSpeed}
+                onSpeedChange={handleSpeedChange}
               />
             </div>
           </div>
