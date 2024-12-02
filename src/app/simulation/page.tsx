@@ -20,7 +20,8 @@ export default function SimulationPage() {
   const dispatch = useDispatch()
   const simulation = useSelector((state: RootState) => state.simulation.data)
   const [isSetupMode, setIsSetupMode] = useState(true)
-  const [selectedShip, setSelectedShip] = useState<ShipData | null>(null)
+  const [selectedShip, setSelectedShip] = useState<ShipData | SimulationShip | null>(null)
+  const [selectedFromController, setSelectedFromController] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -92,16 +93,14 @@ export default function SimulationPage() {
     setCurrentTime(0)
   }
 
-  const handleShipSelect = (shipOrId: ShipData | string) => {
-    if (typeof shipOrId === 'string') {
-      // If we got a shipId (from SimulationController), find the ship data
-      const ship = simulation?.ships?.find(s => s.id === shipOrId)
-      if (ship) {
-        setSelectedShip(ship)
-      }
+  const handleShipSelect = (ship: ShipData | SimulationShip) => {
+    if ('position' in ship) {
+      setSelectedShip(ship)
+      setSelectedFromController(true)
     } else {
-      // If we got a ShipData object (from ShipPicker), use it directly
-      setSelectedShip(shipOrId)
+      const simShip = simulation?.ships?.find(s => s.id === ship.id)
+      setSelectedShip(simShip || ship)
+      setSelectedFromController(false)
     }
   }
 
@@ -300,7 +299,7 @@ export default function SimulationPage() {
           {isSetupMode && (
             <div className="w-64 flex-none navy-panel border-r">
               <ShipPicker
-                onSelect={setSelectedShip}
+                onSelect={handleShipSelect}
                 selectedShipId={selectedShip?.id}
               />
             </div>
@@ -349,7 +348,12 @@ export default function SimulationPage() {
               <ShipDetails
                 ship={selectedShip}
                 isSetupMode={isSetupMode}
-                simulationShip={simulation.ships?.find(s => s.id === selectedShip.id)}
+                simulationShip={
+                  'position' in selectedShip
+                    ? selectedShip
+                    : simulation?.ships?.find(s => s.id === selectedShip.id)
+                }
+                selectedFromController={selectedFromController}
               />
             </div>
           )}
