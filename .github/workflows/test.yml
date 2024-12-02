@@ -16,15 +16,16 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18.x'
+        node-version: '18.19.1'
+        npm-version: '10.2.4'
         cache: 'npm'
         
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y bc
-        npm ci
-        npm install -g vitest
+        npm ci --legacy-peer-deps
+        npm install -g vitest@$(node -p "require('./package.json').devDependencies.vitest")
       
     - name: Create env file
       run: |
@@ -62,6 +63,9 @@ jobs:
         NEXT_PUBLIC_MAPBOX_TOKEN: dummy_token_for_tests
         CI: true
         DEBUG: 'true'
+        LANG: en_US.UTF-8
+        LANGUAGE: en_US:en
+        LC_ALL: en_US.UTF-8
       shell: bash  # Explicitly use bash for pipefail support
       
     - name: Upload coverage reports to Codecov
