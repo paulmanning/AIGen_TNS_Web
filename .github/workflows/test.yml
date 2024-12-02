@@ -45,18 +45,29 @@ jobs:
         npm run test -- --coverage --environment jsdom --reporter verbose --coverage.reporter=text --coverage.reporter=json --coverage.reporter=lcov 2>&1 | tee test-output.txt
         TEST_EXIT_CODE=$?
         
+        # Debug: Show the test output
+        echo "=== Test Output ==="
+        cat test-output.txt
+        echo "=== End Test Output ==="
+        
+        # Debug: Show coverage section
+        echo "=== Coverage Section ==="
+        grep -A 10 "% Coverage report from v8" test-output.txt || true
+        echo "=== End Coverage Section ==="
+        
         # Extract coverage metrics using more specific patterns
-        STATEMENTS=$(grep -A 5 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $3}' | tr -d '%' || echo "0")
-        BRANCHES=$(grep -A 5 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $4}' | tr -d '%' || echo "0")
-        FUNCTIONS=$(grep -A 5 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $5}' | tr -d '%' || echo "0")
-        LINES=$(grep -A 5 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $6}' | tr -d '%' || echo "0")
+        STATEMENTS=$(grep -A 10 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $3}' | tr -d '%' || echo "0")
+        BRANCHES=$(grep -A 10 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $4}' | tr -d '%' || echo "0")
+        FUNCTIONS=$(grep -A 10 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $5}' | tr -d '%' || echo "0")
+        LINES=$(grep -A 10 "% Coverage report from v8" test-output.txt | grep "All files" | awk '{print $6}' | tr -d '%' || echo "0")
         
         # Debug output
-        echo "Extracted metrics:"
+        echo "=== Extracted Metrics ==="
         echo "Statements: $STATEMENTS"
         echo "Branches: $BRANCHES"
         echo "Functions: $FUNCTIONS"
         echo "Lines: $LINES"
+        echo "=== End Extracted Metrics ==="
         
         # Save metrics as step outputs
         echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
