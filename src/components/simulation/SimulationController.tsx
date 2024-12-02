@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { SimulationShip, VesselType } from '@/types/simulation'
-import { PlayCircle, PauseCircle, SkipBack, SkipForward, RotateCcw, Play, Pause, Anchor, Ship, Fish, Waves } from 'lucide-react'
+import { BiPlay, BiPause, BiReset } from 'react-icons/bi'
+import ReactCountryFlag from 'react-country-flag'
+import { getShipIcon } from '@/utils/ship-icons'
 
 interface SimulationControllerProps {
   ships: SimulationShip[]
@@ -25,23 +27,6 @@ function formatNumber(value: number | undefined, decimals: number = 0): string {
   return value.toFixed(decimals)
 }
 
-function getShipIcon(type: VesselType) {
-  switch (type) {
-    case VesselType.SURFACE_WARSHIP:
-      return <Ship size={16} />
-    case VesselType.SUBMARINE:
-      return <Waves size={16} />
-    case VesselType.MERCHANT:
-      return <Anchor size={16} />
-    case VesselType.FISHING:
-      return <Fish size={16} />
-    case VesselType.BIOLOGIC:
-      return <Waves size={16} />
-    default:
-      return <Ship size={16} />
-  }
-}
-
 export function SimulationController({
   ships,
   currentTime,
@@ -59,23 +44,55 @@ export function SimulationController({
 }: SimulationControllerProps) {
   return (
     <div className="h-full flex flex-col">
+      {/* Ship Timeline */}
+      <div className="flex-1 overflow-y-auto border-b border-navy-medium">
+        {ships.map((ship) => (
+          <div
+            key={ship.id}
+            onClick={() => onShipSelect(ship)}
+            className={`
+              py-2 px-4 cursor-pointer transition-colors border-l-4
+              ${ship.id === selectedShipId 
+                ? 'bg-navy-medium border-accent-gold text-accent-gold' 
+                : 'hover:bg-navy-dark hover:border-navy-light border-transparent text-navy-lightest'
+              }
+            `}
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-xl" role="img" aria-label={ship.type}>
+                {getShipIcon(ship.type, ship.nationality, ship.id)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium truncate">{ship.name}</div>
+                <div className={`text-xs ${ship.id === selectedShipId ? 'text-accent-gold' : 'text-navy-light'}`}>
+                  {ship.hullNumber}
+                </div>
+              </div>
+              <div className={`text-xs whitespace-nowrap ${ship.id === selectedShipId ? 'text-accent-gold' : 'text-navy-light'}`}>
+                {formatNumber(ship.course, 0)}° @ {formatNumber(ship.speed, 1)} kts
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Control Bar */}
-      <div className="flex-none p-2 border-b border-navy-medium bg-navy-dark">
-        <div className="flex items-center justify-between">
+      <div className="flex-none p-2 bg-navy-dark">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <button
               onClick={onRestart}
               className="navy-button"
               title="Restart"
             >
-              <RotateCcw size={16} />
+              <BiReset size={16} />
             </button>
             <button
               onClick={onPlayPause}
               className="navy-button"
               title={isPlaying ? "Pause" : "Play"}
             >
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              {isPlaying ? <BiPause size={16} /> : <BiPlay size={16} />}
             </button>
             <div className="relative">
               <select
@@ -97,7 +114,7 @@ export function SimulationController({
             {formatTime(currentTime)}
           </div>
         </div>
-        <div className="mt-4 px-2">
+        <div className="px-2">
           <input
             type="range"
             min={0}
@@ -107,42 +124,6 @@ export function SimulationController({
             className="w-full focus:outline-none"
           />
         </div>
-      </div>
-
-      {/* Ship Timeline */}
-      <div className="flex-1 overflow-y-auto">
-        {ships.map((ship) => (
-          <div
-            key={ship.id}
-            onClick={() => onShipSelect(ship)}
-            className={`
-              p-2 cursor-pointer transition-colors border-l-4
-              ${ship.id === selectedShipId 
-                ? 'bg-navy-medium border-accent-gold text-accent-gold' 
-                : 'hover:bg-navy-dark hover:border-navy-light border-transparent text-navy-lightest'
-              }
-            `}
-          >
-            <div className="flex items-center space-x-2">
-              <span className={`text-xl ${ship.id === selectedShipId ? 'text-accent-gold' : ''}`} role="img" aria-label={ship.type}>
-                {getShipIcon(ship.type)}
-              </span>
-              <div>
-                <div className="font-medium">{ship.name}</div>
-                <div className={`text-sm ${ship.id === selectedShipId ? 'text-accent-gold' : 'text-navy-light'}`}>
-                  {ship.hullNumber}
-                </div>
-              </div>
-              <div className={`ml-auto text-sm ${ship.id === selectedShipId ? 'text-accent-gold' : 'text-navy-light'}`}>
-                {ship.speed !== undefined && ship.course !== undefined ? (
-                  `${formatNumber(ship.speed, 1)} kts @ ${formatNumber(ship.course)}°`
-                ) : (
-                  'Not moving'
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   )

@@ -136,17 +136,30 @@ export default function SimulationPage() {
   }
 
   const handleShipDrop = useCallback((ship: ShipData, position: { x: number, y: number }) => {
-    console.log('Current ships:', simulation?.ships)
-    console.log('Dropping ship:', ship)
-    
     if (!simulation) return
+
+    // Generate random course and speed based on ship characteristics
+    const randomCourse = Math.floor(Math.random() * 360)  // 0-359 degrees
+    const minSpeed = ship.characteristics?.minSpeed || 0
+    const maxSpeed = ship.characteristics?.maxSpeed || 30
+    const randomSpeed = Number((minSpeed + Math.random() * (maxSpeed - minSpeed)).toFixed(1))
+
+    console.log('Generating random values for ship:', {
+      name: ship.name,
+      course: randomCourse,
+      speed: randomSpeed,
+      position: position
+    })
 
     const newShip: SimulationShip = {
       ...ship,
       position: {
         lat: position.y,
         lng: position.x
-      }
+      },
+      course: randomCourse,
+      speed: randomSpeed,
+      depth: 0  // Surface by default
     }
 
     // Check if ship already exists
@@ -161,14 +174,20 @@ export default function SimulationPage() {
       updatedShips.push(newShip)
     }
 
-    console.log('Updated ships:', updatedShips)
-
     const updatedSimulation: SimulationData = {
       ...simulation,
       ships: updatedShips
     }
 
-    console.log('Final simulation state:', updatedSimulation)
+    // Verify the values before dispatch
+    console.log('New ship state:', {
+      id: newShip.id,
+      name: newShip.name,
+      course: newShip.course,
+      speed: newShip.speed,
+      position: newShip.position
+    })
+
     dispatch(setSimulation(updatedSimulation))
   }, [simulation, dispatch])
 

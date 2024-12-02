@@ -13,6 +13,9 @@ export interface SimulationShip extends ShipData {
     lat: number
     lng: number
   }
+  course: number  // in degrees, 0 = North, 90 = East, etc.
+  speed: number   // in knots
+  depth: number   // in meters, 0 = surface
 }
 
 export interface SimulationData {

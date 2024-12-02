@@ -34,8 +34,6 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({})
-  const shipCourses = useRef<{ [key: string]: number }>({})
-  const shipSpeeds = useRef<{ [key: string]: number }>({})
   const isUserInteraction = useRef(false)
   const lastCenter = useRef(center)
   const lastZoom = useRef(zoom)
@@ -146,8 +144,6 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
       if (!ships.find(ship => ship.id === id)) {
         markers.current[id].remove()
         delete markers.current[id]
-        delete shipCourses.current[id]
-        delete shipSpeeds.current[id]
       }
     })
 
@@ -176,10 +172,25 @@ export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], s
               ship={ship} 
               heading={0} 
               affiliation="unknown"
-              course={shipCourses.current[ship.id]}
-              speed={shipSpeeds.current[ship.id]}
+              course={ship.course}
+              speed={ship.speed}
             />
           )
+        } else {
+          // Update existing marker's React component
+          const markerElement = marker.getElement()
+          const root = markerElement._reactRoot
+          if (root) {
+            root.render(
+              <ShipMarker 
+                ship={ship} 
+                heading={0} 
+                affiliation="unknown"
+                course={ship.course}
+                speed={ship.speed}
+              />
+            )
+          }
         }
 
         // Update marker position

@@ -51,7 +51,7 @@ function DraggableShip({ ship, isSelected, onSelect }: {
       ref={drag}
       onClick={onSelect}
       className={`
-        p-4 cursor-move select-none transition-colors border-l-4
+        py-2 px-4 cursor-move select-none transition-colors border-l-4
         ${isDragging ? 'opacity-50' : ''}
         ${isSelected 
           ? 'bg-navy-medium border-accent-gold text-accent-gold' 
@@ -60,12 +60,12 @@ function DraggableShip({ ship, isSelected, onSelect }: {
       `}
     >
       <div className="flex items-center space-x-3">
-        <span className={`text-2xl ${isSelected ? 'text-accent-gold' : ''}`} role="img" aria-label={ship.type}>
+        <span className={`text-xl ${isSelected ? 'text-accent-gold' : ''}`} role="img" aria-label={ship.type}>
           {getShipIcon(ship.type, ship.nationality, ship.id)}
         </span>
-        <div>
-          <div className="font-medium">{ship.name}</div>
-          <div className={`text-sm ${isSelected ? 'text-accent-gold' : 'text-navy-light'}`}>
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">{ship.name}</div>
+          <div className={`text-xs ${isSelected ? 'text-accent-gold' : 'text-navy-light'}`}>
             {ship.hullNumber}
           </div>
         </div>
