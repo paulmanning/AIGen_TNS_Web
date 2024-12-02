@@ -3,6 +3,7 @@
 A sophisticated web-based naval tactical simulation system built with Next.js and TypeScript. This application provides real-time visualization and management of naval simulations with an emphasis on vessel movement and tactical scenarios.
 
 For detailed technical specifications and UI requirements, see [specification.md](specification.md).
+For comprehensive testing documentation, see [testing.md](testing.md).
 
 ## Features
 
@@ -105,7 +106,9 @@ npm run lint
 
 ### Testing
 
-The project uses Vitest as its testing framework, providing:
+The project uses Vitest as its testing framework. For detailed testing documentation, standards, and practices, see [testing.md](testing.md).
+
+Key features include:
 - Fast, modern test runner with native TypeScript support
 - Real-time test feedback during development
 - Interactive testing UI with @vitest/ui
@@ -113,15 +116,19 @@ The project uses Vitest as its testing framework, providing:
 - Integration with React Testing Library
 - Mocked environment for Next.js App Router and Mapbox GL
 
-Key testing files:
-```
-src/
-├── __tests__/                # Integration tests
-│   ├── ui-flow.test.tsx     # UI interaction tests
-│   └── simulation-flow.test.tsx  # Simulation logic tests
-├── components/
-│   └── __tests__/           # Component unit tests
-└── test-setup.ts            # Test environment configuration
+Quick start:
+```bash
+# Run tests with minimal output
+npm run test:min
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in UI mode
+npm run test:ui
+
+# Run tests in watch mode with dev server
+npm run dev:test
 ```
 
 ## Project Structure
