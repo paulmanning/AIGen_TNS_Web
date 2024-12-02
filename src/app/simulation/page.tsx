@@ -333,7 +333,8 @@ export default function SimulationPage() {
                 onShipSelect={handleShipSelect}
                 selectedShipId={selectedShip?.id}
                 isSetupMode={isSetupMode}
-                duration={3600}
+                duration={simulation.duration}
+                startTime={simulation.startTime}
                 onShipUpdate={handleShipUpdate}
                 onRestart={handleRestart}
                 simulationSpeed={simulationSpeed}

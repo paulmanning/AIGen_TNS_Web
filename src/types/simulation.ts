@@ -21,7 +21,8 @@ export interface SimulationShip extends ShipData {
 export interface SimulationData {
   id: string
   name: string
-  startTime?: string
+  startTime: string      // ISO date string
+  duration: number       // in seconds
   location: {
     center: [number, number]
     zoom: number

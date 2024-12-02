@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SimulationShip, VesselType } from '@/types/simulation'
 import { BiPlay, BiPause, BiReset } from 'react-icons/bi'
-import ReactCountryFlag from 'react-country-flag'
 import { getShipIcon } from '@/utils/ship-icons'
 
 interface SimulationControllerProps {
@@ -16,6 +15,7 @@ interface SimulationControllerProps {
   selectedShipId: string | undefined
   isSetupMode: boolean
   duration: number
+  startTime: string
   onShipUpdate: (updatedShips: SimulationShip[]) => void
   onRestart: () => void
   simulationSpeed: number
@@ -25,6 +25,25 @@ interface SimulationControllerProps {
 function formatNumber(value: number | undefined, decimals: number = 0): string {
   if (value === undefined || value === null) return '0'
   return value.toFixed(decimals)
+}
+
+function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+}
+
+function formatDateTime(isoString: string, addSeconds: number = 0): string {
+  const date = new Date(isoString)
+  date.setSeconds(date.getSeconds() + addSeconds)
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
 }
 
 export function SimulationController({
@@ -37,11 +56,29 @@ export function SimulationController({
   selectedShipId,
   isSetupMode,
   duration,
+  startTime,
   onShipUpdate,
   onRestart,
   simulationSpeed,
   onSpeedChange,
 }: SimulationControllerProps) {
+  // Generate tick marks every 30 minutes
+  const timeMarks = useMemo(() => {
+    const marks = []
+    const durationInSeconds = duration * 60  // Convert minutes to seconds
+    const interval = 30 * 60 // 30 minutes in seconds
+    for (let time = 0; time <= durationInSeconds; time += interval) {
+      marks.push({
+        value: time,
+        label: formatTime(time)
+      })
+    }
+    return marks
+  }, [duration])
+
+  // Convert duration to seconds for the slider
+  const durationInSeconds = duration * 60
+
   return (
     <div className="h-full flex flex-col">
       {/* Ship Timeline */}
@@ -78,8 +115,63 @@ export function SimulationController({
 
       {/* Control Bar - Only shown in run mode */}
       {!isSetupMode && (
-        <div className="flex-none p-2 bg-navy-dark">
-          <div className="flex items-center justify-between mb-2">
+        <div className="flex-none p-2 bg-navy-dark space-y-4">
+          {/* Time Slider with Tick Marks */}
+          <div className="space-y-4 px-4">
+            {/* Time Marks */}
+            <div className="relative h-6">
+              {timeMarks.map((mark, index) => {
+                const percent = (mark.value / durationInSeconds) * 100
+                return (
+                  <div 
+                    key={index}
+                    className="absolute flex flex-col items-center"
+                    style={{ 
+                      left: `${percent}%`,
+                      transform: 'translateX(-50%)',
+                      minWidth: '40px'
+                    }}
+                  >
+                    <div className="text-xs text-navy-light whitespace-nowrap">
+                      {mark.label}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Tick Marks and Slider */}
+            <div className="relative mt-2">
+              {/* Tick Marks */}
+              <div className="absolute w-full top-0 h-1">
+                {timeMarks.map((mark, index) => {
+                  const percent = (mark.value / durationInSeconds) * 100
+                  return (
+                    <div 
+                      key={index}
+                      className="absolute w-px h-full bg-navy-medium"
+                      style={{ 
+                        left: `${percent}%`,
+                      }}
+                    />
+                  )
+                })}
+              </div>
+
+              {/* Slider */}
+              <input
+                type="range"
+                min={0}
+                max={durationInSeconds}
+                value={currentTime}
+                onChange={(e) => onTimeChange(Number(e.target.value))}
+                className="w-full focus:outline-none relative z-10"
+              />
+            </div>
+          </div>
+
+          {/* Controls and Current Time */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <button
                 onClick={onRestart}
@@ -111,29 +203,12 @@ export function SimulationController({
                 </select>
               </div>
             </div>
-            <div className="text-navy-lightest font-mono">
-              {formatTime(currentTime)}
+            <div className="text-navy-lightest font-mono text-sm">
+              {formatDateTime(startTime, currentTime)}
             </div>
-          </div>
-          <div className="px-2">
-            <input
-              type="range"
-              min={0}
-              max={duration}
-              value={currentTime}
-              onChange={(e) => onTimeChange(Number(e.target.value))}
-              className="w-full focus:outline-none"
-            />
           </div>
         </div>
       )}
     </div>
   )
-}
-
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 } 
