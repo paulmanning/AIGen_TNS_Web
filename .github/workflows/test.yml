@@ -36,7 +36,9 @@ jobs:
       run: |
         # Run tests and save output
         echo "Running tests with coverage..."
-        npm run test -- --coverage --environment jsdom --reporter verbose | tee test-output.txt
+        set -o pipefail  # Ensure pipeline exit status is the status of the last failing command
+        npm run test -- --coverage --environment jsdom --reporter verbose 2>&1 | tee test-output.txt
+        TEST_EXIT_CODE=$?
         
         # Extract coverage metrics
         STATEMENTS=$(grep "All files" test-output.txt | awk '{print $2}' | tr -d '%' || echo "0")
@@ -51,8 +53,8 @@ jobs:
         echo "lines=$LINES" >> $GITHUB_OUTPUT
         
         # Check for test failures
-        if grep -q "FAIL" test-output.txt; then
-          echo "::error::Tests failed. See output above for details."
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "::error::Tests failed with exit code $TEST_EXIT_CODE. See output above for details."
           exit 1
         fi
       env:
@@ -60,6 +62,7 @@ jobs:
         NEXT_PUBLIC_MAPBOX_TOKEN: dummy_token_for_tests
         CI: true
         DEBUG: 'true'
+      shell: bash  # Explicitly use bash for pipefail support
       
     - name: Upload coverage reports to Codecov
       if: always()
