@@ -45,32 +45,21 @@ jobs:
         npm run test -- --coverage --environment jsdom --reporter verbose --coverage.reporter=text --coverage.reporter=json --coverage.reporter=lcov 2>&1 | tee test-output.txt
         TEST_EXIT_CODE=$?
         
-        # Debug: Show the test output
+        # Extract coverage metrics using grep and sed
+        STATEMENTS=$(grep "All files" test-output.txt | sed -E 's/All files[[:space:]]+\|[[:space:]]+([0-9.]+)[[:space:]]+\|.*/\1/')
+        BRANCHES=$(grep "All files" test-output.txt | sed -E 's/All files[[:space:]]+\|[[:space:]]+[0-9.]+[[:space:]]+\|[[:space:]]+([0-9.]+)[[:space:]]+\|.*/\1/')
+        FUNCTIONS=$(grep "All files" test-output.txt | sed -E 's/All files[[:space:]]+\|[[:space:]]+[0-9.]+[[:space:]]+\|[[:space:]]+[0-9.]+[[:space:]]+\|[[:space:]]+([0-9.]+)[[:space:]]+\|.*/\1/')
+        LINES=$(grep "All files" test-output.txt | sed -E 's/All files[[:space:]]+\|[[:space:]]+[0-9.]+[[:space:]]+\|[[:space:]]+[0-9.]+[[:space:]]+\|[[:space:]]+[0-9.]+[[:space:]]+\|[[:space:]]+([0-9.]+)[[:space:]]+\|.*/\1/')
+        
+        # Debug output
         echo "=== Test Output ==="
         cat test-output.txt
         echo "=== End Test Output ==="
         
-        # Debug: Show coverage section
-        echo "=== Coverage Section ==="
-        grep -A 10 "-------------------|---------|----------|---------|---------|-------------------" test-output.txt || true
-        echo "=== End Coverage Section ==="
-        
-        # Extract coverage metrics using the actual format
-        # Skip header lines and get the "All files" line
-        ALL_FILES_LINE=$(grep -A 3 "-------------------|---------|----------|---------|---------|-------------------" test-output.txt | grep "All files")
-        
-        # Debug output
         echo "=== All Files Line ==="
-        echo "$ALL_FILES_LINE"
+        grep "All files" test-output.txt
         echo "=== End All Files Line ==="
         
-        # Extract metrics using awk with | as field separator
-        STATEMENTS=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); gsub(/%/, "", $3); print $3}' || echo "0")
-        BRANCHES=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $4); gsub(/%/, "", $4); print $4}' || echo "0")
-        FUNCTIONS=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $5); gsub(/%/, "", $5); print $5}' || echo "0")
-        LINES=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $6); gsub(/%/, "", $6); print $6}' || echo "0")
-        
-        # Debug output
         echo "=== Extracted Metrics ==="
         echo "Statements: $STATEMENTS"
         echo "Branches: $BRANCHES"
