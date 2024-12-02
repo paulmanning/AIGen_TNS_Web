@@ -35,12 +35,18 @@ const shipModifiers = {
 
 interface SimulationControllerProps {
   ships: SimulationShip[]
-  currentTime: number // in seconds from simulation start
+  currentTime: number
   isPlaying: boolean
   onPlayPause: () => void
   onTimeChange: (time: number) => void
   onShipSelect: (shipId: string) => void
   selectedShipId?: string
+  isSetupMode: boolean
+  duration: number
+  onShipUpdate: (ships: SimulationShip[]) => void
+  onRestart: () => void
+  simulationSpeed: number
+  onSpeedChange: (speed: number) => void
 }
 
 export function SimulationController({
@@ -50,7 +56,13 @@ export function SimulationController({
   onPlayPause,
   onTimeChange,
   onShipSelect,
-  selectedShipId
+  selectedShipId,
+  isSetupMode,
+  duration,
+  onShipUpdate,
+  onRestart,
+  simulationSpeed,
+  onSpeedChange
 }: SimulationControllerProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
 
@@ -115,7 +127,7 @@ export function SimulationController({
                     <span className="text-xs text-gray-500">({ship.hullNumber})</span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {`${Math.round(ship.characteristics.maxSpeed)} kts / ${Math.round(ship.characteristics.maxDepth)}m`}
+                    {`${Math.round(ship.speed)} kts / ${Math.round(ship.depth)}m`}
                   </div>
                 </div>
               </div>
@@ -129,7 +141,7 @@ export function SimulationController({
                 {/* Current Time Indicator */}
                 <div
                   className="absolute top-0 bottom-0 w-0.5 bg-red-500"
-                  style={{ left: `${(currentTime / (15 * 60)) * 100}%` }}
+                  style={{ left: `${(currentTime / duration) * 100}%` }}
                   role="presentation"
                 />
 
@@ -143,8 +155,6 @@ export function SimulationController({
                     />
                   ))}
                 </div>
-
-                {/* TODO: Add event flags for orders and changes */}
               </div>
             </div>
           )
@@ -185,7 +195,7 @@ export function SimulationController({
           </button>
 
           <button
-            onClick={() => onTimeChange(currentTime + 60)}
+            onClick={() => onTimeChange(Math.min(duration, currentTime + 60))}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             aria-label="Skip forward"
           >
@@ -194,9 +204,15 @@ export function SimulationController({
         </div>
 
         {/* Speed Control */}
-        <div className="text-sm" role="status" aria-label="Playback speed">
-          Speed: 1x
-        </div>
+        <select
+          value={simulationSpeed}
+          onChange={(e) => onSpeedChange(Number(e.target.value))}
+          className="px-2 py-1 border rounded text-sm"
+        >
+          {[1, 2, 5, 10, 20, 50].map(speed => (
+            <option key={speed} value={speed}>{speed}x</option>
+          ))}
+        </select>
       </div>
     </div>
   )

@@ -26,6 +26,7 @@ export default function SimulationPage() {
   const [isPlaying, setIsPlaying] = useState(false)
   const lastLocation = React.useRef<SimulationData['location'] | null>(null)
   const router = useRouter()
+  const [simulationSpeed, setSimulationSpeed] = useState(1)
 
   // Initialize available ships in localStorage
   useEffect(() => {
@@ -83,8 +84,17 @@ export default function SimulationPage() {
     console.log('Saved simulation:', simulation)
   }
 
-  const handleShipSelect = (ship: ShipData) => {
-    setSelectedShip(ship)
+  const handleShipSelect = (shipOrId: ShipData | string) => {
+    if (typeof shipOrId === 'string') {
+      // If we got a shipId (from SimulationController), find the ship data
+      const ship = simulation?.ships?.find(s => s.id === shipOrId)
+      if (ship) {
+        setSelectedShip(ship)
+      }
+    } else {
+      // If we got a ShipData object (from ShipPicker), use it directly
+      setSelectedShip(shipOrId)
+    }
   }
 
   const handleMapChange = (center: [number, number], zoom: number) => {
@@ -179,6 +189,37 @@ export default function SimulationPage() {
     setCurrentTime(newTime)
   }
 
+  const handleShipUpdate = useCallback((updatedShips: SimulationShip[]) => {
+    if (!simulation) return
+    
+    const updatedSimulation: SimulationData = {
+      ...simulation,
+      ships: updatedShips
+    }
+    
+    dispatch(setSimulation(updatedSimulation))
+  }, [simulation, dispatch])
+
+  const handleRestart = useCallback(() => {
+    setCurrentTime(0)
+    setIsPlaying(false)
+    
+    // Reset ships to their initial positions
+    if (simulation?.ships) {
+      const resetShips = simulation.ships.map(ship => ({
+        ...ship,
+        course: 0,
+        speed: 0,
+        depth: 0
+      }))
+      handleShipUpdate(resetShips)
+    }
+  }, [simulation, handleShipUpdate])
+
+  const handleSpeedChange = useCallback((speed: number) => {
+    setSimulationSpeed(speed)
+  }, [])
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -259,13 +300,19 @@ export default function SimulationPage() {
             {/* Simulation Controller */}
             <div className="flex-none h-48 bg-gray-100 border-t dark:bg-gray-800 dark:border-gray-700">
               <SimulationController
-                ships={simulation.ships || []}
+                ships={simulation?.ships || []}
                 currentTime={currentTime}
                 isPlaying={isPlaying}
                 onPlayPause={handlePlayPause}
                 onTimeChange={handleTimeChange}
                 onShipSelect={handleShipSelect}
                 selectedShipId={selectedShip?.id}
+                isSetupMode={isSetupMode}
+                duration={3600}
+                onShipUpdate={handleShipUpdate}
+                onRestart={handleRestart}
+                simulationSpeed={simulationSpeed}
+                onSpeedChange={handleSpeedChange}
               />
             </div>
           </div>

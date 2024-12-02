@@ -37,84 +37,90 @@ export function ShipDetails({ ship }: ShipDetailsProps) {
       </div>
 
       {/* Characteristics */}
-      <div className="space-y-2">
-        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
-          Characteristics
-        </h4>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div>
-            <span className="text-gray-600 dark:text-gray-400">Speed:</span>
+      {ship.characteristics && (
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+            Characteristics
+          </h4>
+          <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              {ship.characteristics.minSpeed} - {ship.characteristics.maxSpeed} kts
+              <span className="text-gray-600 dark:text-gray-400">Speed:</span>
+              <div>
+                {ship.characteristics.minSpeed || 0} - {ship.characteristics.maxSpeed || 30} kts
+              </div>
             </div>
-          </div>
-          <div>
-            <span className="text-gray-600 dark:text-gray-400">Depth:</span>
             <div>
-              {ship.characteristics.minDepth} - {ship.characteristics.maxDepth} m
+              <span className="text-gray-600 dark:text-gray-400">Depth:</span>
+              <div>
+                {ship.characteristics.minDepth || 0} - {ship.characteristics.maxDepth || 0} m
+              </div>
             </div>
-          </div>
-          <div>
-            <span className="text-gray-600 dark:text-gray-400">Turn Rate:</span>
-            <div>{ship.characteristics.turnRate}°/min</div>
-          </div>
-          <div>
-            <span className="text-gray-600 dark:text-gray-400">Acceleration:</span>
-            <div>{ship.characteristics.accelerationRate} kts/min</div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Turn Rate:</span>
+              <div>{ship.characteristics.turnRate || 6}°/min</div>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Acceleration:</span>
+              <div>{ship.characteristics.accelerationRate || 2} kts/min</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Propulsion */}
-      <div className="space-y-2">
-        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
-          Propulsion
-        </h4>
-        {ship.characteristics.propulsion.map((prop, index) => (
-          <div key={index} className="text-sm">
-            <div className="text-gray-600 dark:text-gray-400">
-              {prop.type}
-            </div>
-            {prop.configuration.bladeCount && (
-              <div>
-                {prop.configuration.bladeCount} blade {prop.configuration.bladeType}
+      {ship.characteristics?.propulsion && (
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+            Propulsion
+          </h4>
+          {ship.characteristics.propulsion.map((prop, index) => (
+            <div key={index} className="text-sm">
+              <div className="text-gray-600 dark:text-gray-400">
+                {prop.type}
               </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Acoustic Signatures */}
-      <div className="space-y-2">
-        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
-          Acoustic Signatures
-        </h4>
-        {ship.acousticSignatures.map((sig, index) => (
-          <div key={index} className="text-sm border-l-2 border-gray-300 pl-2">
-            <div className="font-medium">{sig.type}</div>
-            <div className="grid grid-cols-2 gap-1">
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Center:</span>
-                <div>{sig.centerFrequency} Hz</div>
-              </div>
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Bandwidth:</span>
-                <div>{sig.bandwidth} Hz</div>
-              </div>
-              <div>
-                <span className="text-gray-600 dark:text-gray-400">Strength:</span>
-                <div>{sig.signalStrength} dB</div>
-              </div>
-              {sig.driftRate && (
+              {prop.configuration?.bladeCount && (
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">Drift:</span>
-                  <div>{sig.driftRate} Hz/min</div>
+                  {prop.configuration.bladeCount} blade {prop.configuration.bladeType}
                 </div>
               )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* Acoustic Signatures */}
+      {ship.acousticSignatures && ship.acousticSignatures.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+            Acoustic Signatures
+          </h4>
+          {ship.acousticSignatures.map((sig, index) => (
+            <div key={index} className="text-sm border-l-2 border-gray-300 pl-2">
+              <div className="font-medium">{sig.type}</div>
+              <div className="grid grid-cols-2 gap-1">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Center:</span>
+                  <div>{sig.centerFrequency} Hz</div>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Bandwidth:</span>
+                  <div>{sig.bandwidth} Hz</div>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Strength:</span>
+                  <div>{sig.signalStrength} dB</div>
+                </div>
+                {sig.driftRate && (
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">Drift:</span>
+                    <div>{sig.driftRate} Hz/min</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 } 

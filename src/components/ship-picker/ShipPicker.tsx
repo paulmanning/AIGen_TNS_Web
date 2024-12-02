@@ -1,15 +1,16 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDrag } from 'react-dnd'
 import { getShipIcon } from '@/utils/ship-icons'
 import type { ShipData } from '@/data/ships'
+import { defaultShips } from '@/data/ships'
 import { VesselType } from '@/types/simulation'
 import { getEmptyImage } from 'react-dnd-html5-backend'
 
 interface ShipPickerProps {
   onSelect: (ship: ShipData) => void
-  selectedShipId: string | undefined
+  selectedShipId?: string
 }
 
 // Custom drag layer component
@@ -73,34 +74,19 @@ function DraggableShip({ ship, isSelected, onSelect }: {
 }
 
 export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
-  const [ships, setShips] = React.useState<ShipData[]>([])
-  const [searchTerm, setSearchTerm] = React.useState('')
-  const [collapsedTypes, setCollapsedTypes] = React.useState<Set<VesselType>>(new Set())
+  const [ships, setShips] = useState<ShipData[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [collapsedTypes, setCollapsedTypes] = useState<Set<VesselType>>(new Set())
 
-  React.useEffect(() => {
-    const loadShips = async () => {
-      const storedShips = localStorage.getItem('availableShips')
-      if (storedShips) {
-        try {
-          const parsedShips = JSON.parse(storedShips)
-          if (Array.isArray(parsedShips) && parsedShips.every(ship => ship && typeof ship.name === 'string')) {
-            setShips(parsedShips)
-            // Select the first ship by default if none is selected
-            if (!selectedShipId && parsedShips.length > 0) {
-              onSelect(parsedShips[0])
-            }
-          } else {
-            console.error('Invalid ship data format')
-            setShips([])
-          }
-        } catch (error) {
-          console.error('Error parsing ships:', error)
-          setShips([])
-        }
-      }
+  useEffect(() => {
+    const storedShips = localStorage.getItem('availableShips')
+    if (storedShips) {
+      setShips(JSON.parse(storedShips))
+    } else {
+      setShips(defaultShips)
+      localStorage.setItem('availableShips', JSON.stringify(defaultShips))
     }
-    loadShips()
-  }, [onSelect, selectedShipId])
+  }, [])
 
   const filteredShips = ships.filter(ship => {
     if (!ship || typeof ship.name !== 'string') return false
