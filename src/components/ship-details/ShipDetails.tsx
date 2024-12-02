@@ -2,19 +2,28 @@
 
 import React from 'react'
 import { ShipData } from '@/data/ships'
+import { SimulationShip } from '@/types/simulation'
 import { getShipIcon } from '@/utils/ship-icons'
 
 interface ShipDetailsProps {
   ship: ShipData | null
+  isSetupMode: boolean
+  simulationShip?: SimulationShip
 }
 
-export function ShipDetails({ ship }: ShipDetailsProps) {
+export function ShipDetails({ ship, isSetupMode, simulationShip }: ShipDetailsProps) {
   if (!ship) {
     return (
       <div className="p-4 text-gray-500 dark:text-gray-400 text-center">
         Select a ship to view details
       </div>
     )
+  }
+
+  // Helper function to safely format numbers
+  const formatNumber = (value: number | undefined | null, decimals: number = 1) => {
+    if (value === undefined || value === null) return '0'
+    return value.toFixed(decimals)
   }
 
   return (
@@ -35,6 +44,35 @@ export function ShipDetails({ ship }: ShipDetailsProps) {
           </div>
         </div>
       </div>
+
+      {/* Current State (only in run mode) */}
+      {!isSetupMode && simulationShip && (
+        <div className="space-y-2 border-l-2 border-blue-500 pl-2">
+          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+            Current State
+          </h4>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Position:</span>
+              <div>
+                {formatNumber(simulationShip.position?.lat, 4)}°N, {formatNumber(simulationShip.position?.lng, 4)}°E
+              </div>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Course:</span>
+              <div>{formatNumber(simulationShip.course)}°</div>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Speed:</span>
+              <div>{formatNumber(simulationShip.speed)} kts</div>
+            </div>
+            <div>
+              <span className="text-gray-600 dark:text-gray-400">Depth:</span>
+              <div>{formatNumber(simulationShip.depth, 0)} m</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Characteristics */}
       {ship.characteristics && (

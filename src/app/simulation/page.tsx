@@ -24,9 +24,10 @@ export default function SimulationPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [simulationSpeed, setSimulationSpeed] = useState(1)
+  const [initialShips, setInitialShips] = useState<SimulationShip[]>([])
   const lastLocation = React.useRef<SimulationData['location'] | null>(null)
   const router = useRouter()
-  const [simulationSpeed, setSimulationSpeed] = useState(1)
 
   // Initialize available ships in localStorage
   useEffect(() => {
@@ -80,8 +81,15 @@ export default function SimulationPage() {
   const handleSave = () => {
     if (!simulation) return
     setIsSetupMode(false)
+    setIsPlaying(false) // Start in paused state
     localStorage.setItem('currentSimulation', JSON.stringify(simulation))
     console.log('Saved simulation:', simulation)
+  }
+
+  const handleReturnToSetup = () => {
+    setIsSetupMode(true)
+    setIsPlaying(false)
+    setCurrentTime(0)
   }
 
   const handleShipSelect = (shipOrId: ShipData | string) => {
@@ -235,76 +243,75 @@ export default function SimulationPage() {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="fixed inset-0 flex flex-col">
-        {/* Top Navigation */}
-        <header className="flex-none bg-gray-800 text-white p-4">
+        {/* Title Bar */}
+        <div className="flex-none bg-gray-800 text-white p-4">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-bold">
-              Naval Tactical Simulator - {isSetupMode ? 'Setup' : 'Run'}
+              Naval Tactical Simulator - {simulation.name} ({isSetupMode ? 'Setup' : 'Run'})
             </h1>
             <div className="flex gap-4">
               <button 
                 onClick={handleReset}
-                className="px-3 py-1 rounded bg-red-600 hover:bg-red-700"
+                className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 transition-colors"
               >
                 Reset
               </button>
-              <button 
-                onClick={handleSave}
-                className={`px-3 py-1 rounded ${
-                  isSetupMode 
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {isSetupMode ? 'Save' : 'Running'}
-              </button>
+              {isSetupMode ? (
+                <button 
+                  onClick={handleSave}
+                  className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 transition-colors"
+                >
+                  Save
+                </button>
+              ) : (
+                <button 
+                  onClick={handleReturnToSetup}
+                  className="px-3 py-1 rounded bg-yellow-600 hover:bg-yellow-700 transition-colors"
+                >
+                  Setup
+                </button>
+              )}
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Main Content */}
         <div className="flex-1 flex min-h-0">
-          {/* Left Sidebar - Ship Picker */}
-          <div className="w-64 flex-none bg-gray-100 border-r dark:bg-gray-800 dark:border-gray-700">
-            <ShipPicker
-              onSelect={handleShipSelect}
-              selectedShipId={selectedShip?.id}
-            />
-          </div>
+          {/* Left Sidebar - Ship Picker (only visible in setup mode) */}
+          {isSetupMode && (
+            <div className="w-64 flex-none bg-gray-100 border-r dark:bg-gray-800 dark:border-gray-700">
+              <ShipPicker
+                onSelect={setSelectedShip}
+                selectedShipId={selectedShip?.id}
+              />
+            </div>
+          )}
 
           {/* Main View Area */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Simulation Title */}
-            <div className="flex-none bg-gray-800 text-white px-4 py-2 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {simulation.name}
-              </h2>
-              <span className="text-sm text-gray-400">
-                {simulation.startTime && 
-                  `Start: ${new Date(simulation.startTime).toLocaleString()}`}
-              </span>
-            </div>
-
             {/* Ocean View with Map */}
             <div className="flex-1 relative min-h-0">
               <MapComponent
-                key={`map-${simulation.id}`}
                 center={simulation.location.center}
                 zoom={simulation.location.zoom}
                 onChange={handleMapChange}
-                onShipDrop={handleShipDrop}
+                onShipDrop={isSetupMode ? handleShipDrop : undefined}
                 ships={simulation.ships || []}
+                selectedShipId={selectedShip?.id}
+                isSetupMode={isSetupMode}
+                isPlaying={isPlaying}
               />
+              {isSetupMode && <CustomDragLayer />}
             </div>
 
-            {/* Simulation Controller */}
+            {/* Simulation Controls */}
             <div className="flex-none h-48 bg-gray-100 border-t dark:bg-gray-800 dark:border-gray-700">
               <SimulationController
-                ships={simulation?.ships || []}
+                ships={simulation.ships || []}
                 currentTime={currentTime}
                 isPlaying={isPlaying}
-                onPlayPause={handlePlayPause}
-                onTimeChange={handleTimeChange}
+                onPlayPause={() => setIsPlaying(!isPlaying)}
+                onTimeChange={setCurrentTime}
                 onShipSelect={handleShipSelect}
                 selectedShipId={selectedShip?.id}
                 isSetupMode={isSetupMode}
@@ -312,17 +319,22 @@ export default function SimulationPage() {
                 onShipUpdate={handleShipUpdate}
                 onRestart={handleRestart}
                 simulationSpeed={simulationSpeed}
-                onSpeedChange={handleSpeedChange}
+                onSpeedChange={setSimulationSpeed}
               />
             </div>
           </div>
 
-          {/* Right Sidebar - Info Panel */}
-          <div className="w-72 flex-none bg-gray-100 border-l dark:bg-gray-800 dark:border-gray-700">
-            <ShipDetails ship={selectedShip} />
-          </div>
+          {/* Right Sidebar - Ship Details */}
+          {selectedShip && (
+            <div className="w-80 flex-none bg-gray-100 border-l dark:bg-gray-800 dark:border-gray-700">
+              <ShipDetails
+                ship={selectedShip}
+                isSetupMode={isSetupMode}
+                simulationShip={simulation.ships?.find(s => s.id === selectedShip.id)}
+              />
+            </div>
+          )}
         </div>
-        <CustomDragLayer />
       </div>
     </DndProvider>
   )

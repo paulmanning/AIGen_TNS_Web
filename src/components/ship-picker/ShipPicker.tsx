@@ -80,13 +80,22 @@ export function ShipPicker({ onSelect, selectedShipId }: ShipPickerProps) {
 
   useEffect(() => {
     const storedShips = localStorage.getItem('availableShips')
+    let loadedShips: ShipData[] = []
+    
     if (storedShips) {
-      setShips(JSON.parse(storedShips))
+      loadedShips = JSON.parse(storedShips)
     } else {
-      setShips(defaultShips)
+      loadedShips = defaultShips
       localStorage.setItem('availableShips', JSON.stringify(defaultShips))
     }
-  }, [])
+    
+    setShips(loadedShips)
+    
+    // Select first ship if none is selected
+    if (loadedShips.length > 0 && !selectedShipId) {
+      onSelect(loadedShips[0])
+    }
+  }, [onSelect, selectedShipId])
 
   const filteredShips = ships.filter(ship => {
     if (!ship || typeof ship.name !== 'string') return false

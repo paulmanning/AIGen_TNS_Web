@@ -24,10 +24,13 @@ interface MapComponentProps {
   zoom: number
   onChange: (center: [number, number], zoom: number) => void
   onShipDrop?: (ship: ShipData, position: { x: number, y: number }) => void
-  ships?: SimulationShip[]
+  ships: SimulationShip[]
+  selectedShipId?: string
+  isSetupMode: boolean
+  isPlaying: boolean
 }
 
-export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [] }: MapComponentProps) {
+export function MapComponent({ center, zoom, onChange, onShipDrop, ships = [], selectedShipId, isSetupMode, isPlaying }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({})

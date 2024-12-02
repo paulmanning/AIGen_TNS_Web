@@ -148,6 +148,9 @@ export function NewSimulationDialog({ isOpen, onClose, onCreate }: NewSimulation
                   center={formData.location.center}
                   zoom={formData.location.zoom}
                   onChange={handleMapChange}
+                  ships={[]}
+                  isSetupMode={true}
+                  isPlaying={false}
                 />
               </div>
             </div>
