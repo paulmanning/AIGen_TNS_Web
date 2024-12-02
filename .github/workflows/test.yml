@@ -52,22 +52,26 @@ jobs:
         
         # Debug: Show coverage section
         echo "=== Coverage Section ==="
-        grep -A 10 "% Coverage report from v8" test-output.txt || true
+        grep -A 10 "-------------------|---------|----------|---------|---------|-------------------" test-output.txt || true
         echo "=== End Coverage Section ==="
         
         # Extract coverage metrics using the actual format
         # Skip header lines and get the "All files" line
-        ALL_FILES_LINE=$(grep -A 3 "% Coverage report from v8" test-output.txt | grep "All files")
+        ALL_FILES_LINE=$(grep -A 3 "-------------------|---------|----------|---------|---------|-------------------" test-output.txt | grep "All files")
+        
+        # Debug output
+        echo "=== All Files Line ==="
+        echo "$ALL_FILES_LINE"
+        echo "=== End All Files Line ==="
         
         # Extract metrics using awk with | as field separator
-        STATEMENTS=$(echo "$ALL_FILES_LINE" | awk -F'|' '{print $2}' | tr -d ' ' | tr -d '%' || echo "0")
-        BRANCHES=$(echo "$ALL_FILES_LINE" | awk -F'|' '{print $3}' | tr -d ' ' | tr -d '%' || echo "0")
-        FUNCTIONS=$(echo "$ALL_FILES_LINE" | awk -F'|' '{print $4}' | tr -d ' ' | tr -d '%' || echo "0")
-        LINES=$(echo "$ALL_FILES_LINE" | awk -F'|' '{print $5}' | tr -d ' ' | tr -d '%' || echo "0")
+        STATEMENTS=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); gsub(/%/, "", $3); print $3}' || echo "0")
+        BRANCHES=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $4); gsub(/%/, "", $4); print $4}' || echo "0")
+        FUNCTIONS=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $5); gsub(/%/, "", $5); print $5}' || echo "0")
+        LINES=$(echo "$ALL_FILES_LINE" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $6); gsub(/%/, "", $6); print $6}' || echo "0")
         
         # Debug output
         echo "=== Extracted Metrics ==="
-        echo "All files line: $ALL_FILES_LINE"
         echo "Statements: $STATEMENTS"
         echo "Branches: $BRANCHES"
         echo "Functions: $FUNCTIONS"
