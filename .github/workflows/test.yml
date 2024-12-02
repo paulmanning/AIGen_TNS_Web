@@ -49,14 +49,14 @@ jobs:
         echo "=== End Coverage Report ==="
         
         # Extract metrics using grep and awk
-        COVERAGE_LINE=$(grep "All files" test-output.txt)
+        COVERAGE_LINE=$(grep "All files" test-output.txt | tail -n1)
         echo "Coverage line: $COVERAGE_LINE"
         
-        # Parse metrics using awk
-        STATEMENTS=$(echo "$COVERAGE_LINE" | awk '{print $3}')
-        BRANCHES=$(echo "$COVERAGE_LINE" | awk '{print $5}')
-        FUNCTIONS=$(echo "$COVERAGE_LINE" | awk '{print $7}')
-        LINES=$(echo "$COVERAGE_LINE" | awk '{print $9}')
+        # Parse metrics using awk with | as field separator
+        STATEMENTS=$(echo "$COVERAGE_LINE" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}')
+        BRANCHES=$(echo "$COVERAGE_LINE" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $3); print $3}')
+        FUNCTIONS=$(echo "$COVERAGE_LINE" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $4); print $4}')
+        LINES=$(echo "$COVERAGE_LINE" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $5); print $5}')
         
         # Remove % signs
         STATEMENTS=$(echo "$STATEMENTS" | tr -d '%')
