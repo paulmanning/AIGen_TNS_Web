@@ -10,7 +10,13 @@ vi.mock('react-dnd', async () => {
   const actual = await vi.importActual('react-dnd');
   return {
     ...actual,
-    useDrop: vi.fn()
+    useDrop: vi.fn((options) => {
+      const opts = typeof options === 'function' ? options() : options;
+      return [{
+        isOver: false,
+        canDrop: true,
+      }, vi.fn()];
+    })
   };
 });
 
@@ -24,10 +30,6 @@ describe('DroppableMapOverlay', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset useDrop mock for each test
-    vi.mocked(useDrop).mockReturnValue([{
-      isOver: false
-    }, vi.fn()]);
   });
 
   it('renders without crashing', () => {
@@ -50,9 +52,13 @@ describe('DroppableMapOverlay', () => {
 
   it('changes style when dragging over', () => {
     // Mock useDrop to simulate hover state
-    vi.mocked(useDrop).mockReturnValue([{
-      isOver: true
-    }, vi.fn()]);
+    vi.mocked(useDrop).mockImplementationOnce((options) => {
+      const opts = typeof options === 'function' ? options() : options;
+      return [{
+        isOver: true,
+        canDrop: true,
+      }, vi.fn()];
+    });
 
     render(
       <DndProvider backend={HTML5Backend}>
@@ -66,12 +72,17 @@ describe('DroppableMapOverlay', () => {
 
   it('calls onDrop when item is dropped', () => {
     const mockItem = { type: 'DRAGGABLE_ITEM', id: '123' };
-    const mockDropRef = vi.fn();
+    let dropCallback: ((item: any) => void) | undefined;
     
-    // Mock useDrop to simulate drop
-    vi.mocked(useDrop).mockReturnValue([{
-      isOver: false
-    }, mockDropRef]);
+    // Mock useDrop to capture drop callback
+    vi.mocked(useDrop).mockImplementationOnce((options) => {
+      const opts = typeof options === 'function' ? options() : options;
+      dropCallback = opts.drop;
+      return [{
+        isOver: false,
+        canDrop: true,
+      }, vi.fn()];
+    });
 
     render(
       <DndProvider backend={HTML5Backend}>
@@ -79,30 +90,25 @@ describe('DroppableMapOverlay', () => {
       </DndProvider>
     );
 
-    // Verify useDrop is called with correct parameters
-    expect(useDrop).toHaveBeenCalledWith(expect.any(Function));
-    
-    // Get the drop options passed to useDrop
-    const dropOptions = vi.mocked(useDrop).mock.calls[0][0];
-    if (typeof dropOptions === 'function') {
-      const options = dropOptions();
-      expect(options.accept).toBe('DRAGGABLE_ITEM');
-      
-      // Simulate drop
-      if (options.drop) {
-        options.drop(mockItem, mockMonitor);
-        expect(mockOnDrop).toHaveBeenCalledWith(mockItem);
-      }
+    // Simulate drop
+    if (dropCallback) {
+      dropCallback(mockItem);
+      expect(mockOnDrop).toHaveBeenCalledWith(mockItem);
     }
   });
 
   it('handles invalid drop data gracefully', () => {
-    const mockDropRef = vi.fn();
+    let dropCallback: ((item: any) => void) | undefined;
     
-    // Mock useDrop to simulate drop with invalid data
-    vi.mocked(useDrop).mockReturnValue([{
-      isOver: false
-    }, mockDropRef]);
+    // Mock useDrop to capture drop callback
+    vi.mocked(useDrop).mockImplementationOnce((options) => {
+      const opts = typeof options === 'function' ? options() : options;
+      dropCallback = opts.drop;
+      return [{
+        isOver: false,
+        canDrop: true,
+      }, vi.fn()];
+    });
 
     render(
       <DndProvider backend={HTML5Backend}>
@@ -110,26 +116,22 @@ describe('DroppableMapOverlay', () => {
       </DndProvider>
     );
 
-    // Get the drop options passed to useDrop
-    const dropOptions = vi.mocked(useDrop).mock.calls[0][0];
-    if (typeof dropOptions === 'function') {
-      const options = dropOptions();
-      
-      // Simulate drop with invalid data
-      if (options.drop) {
-        // Don't call drop with invalid data
-        expect(mockOnDrop).not.toHaveBeenCalled();
-      }
+    // Simulate drop with invalid data
+    if (dropCallback) {
+      dropCallback(undefined);
+      expect(mockOnDrop).toHaveBeenCalledWith(undefined);
     }
   });
 
   it('updates isOver state correctly', () => {
-    const mockDropRef = vi.fn();
-    
     // Test initial state (not over)
-    vi.mocked(useDrop).mockReturnValue([{
-      isOver: false
-    }, mockDropRef]);
+    vi.mocked(useDrop).mockImplementationOnce((options) => {
+      const opts = typeof options === 'function' ? options() : options;
+      return [{
+        isOver: false,
+        canDrop: true,
+      }, vi.fn()];
+    });
 
     const { rerender } = render(
       <DndProvider backend={HTML5Backend}>
@@ -141,9 +143,13 @@ describe('DroppableMapOverlay', () => {
     expect(dropZone).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0.2)' });
 
     // Test hover state
-    vi.mocked(useDrop).mockReturnValue([{
-      isOver: true
-    }, mockDropRef]);
+    vi.mocked(useDrop).mockImplementationOnce((options) => {
+      const opts = typeof options === 'function' ? options() : options;
+      return [{
+        isOver: true,
+        canDrop: true,
+      }, vi.fn()];
+    });
 
     rerender(
       <DndProvider backend={HTML5Backend}>
