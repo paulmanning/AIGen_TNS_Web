@@ -72,7 +72,7 @@ describe('DroppableMapOverlay', () => {
 
   it('calls onDrop when item is dropped', () => {
     const mockItem = { type: 'DRAGGABLE_ITEM', id: '123' };
-    let dropCallback: ((item: any) => void) | undefined;
+    let dropCallback: ((item: unknown, monitor: DropTargetMonitor) => void) | undefined;
     
     // Mock useDrop to capture drop callback
     vi.mocked(useDrop).mockImplementationOnce((options) => {
@@ -92,13 +92,13 @@ describe('DroppableMapOverlay', () => {
 
     // Simulate drop
     if (dropCallback) {
-      dropCallback(mockItem);
+      dropCallback(mockItem, mockMonitor);
       expect(mockOnDrop).toHaveBeenCalledWith(mockItem);
     }
   });
 
   it('handles invalid drop data gracefully', () => {
-    let dropCallback: ((item: any) => void) | undefined;
+    let dropCallback: ((item: unknown, monitor: DropTargetMonitor) => void) | undefined;
     
     // Mock useDrop to capture drop callback
     vi.mocked(useDrop).mockImplementationOnce((options) => {
@@ -118,7 +118,7 @@ describe('DroppableMapOverlay', () => {
 
     // Simulate drop with invalid data
     if (dropCallback) {
-      dropCallback(undefined);
+      dropCallback(undefined, mockMonitor);
       expect(mockOnDrop).toHaveBeenCalledWith(undefined);
     }
   });
